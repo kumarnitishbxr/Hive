@@ -117,4 +117,34 @@ export const aiService = {
   chat: (payload: { prompt: string; topic?: string }) => api.post('/ai/chat', payload)
 };
 
+// Workspace Chat & Communications API
+export const chatService = {
+  getConversations: () => api.get('/chat/conversations'),
+  getMembers: () => api.get('/chat/members'),
+  getMessages: (conversationId: string, limit?: number, before?: string) => {
+    let url = `/chat/messages/${conversationId}`;
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
+    if (before) params.append('before', before);
+    const queryStr = params.toString();
+    if (queryStr) url += `?${queryStr}`;
+    return api.get(url);
+  },
+  sendMessage: (payload: { conversationId?: string; recipientId?: string; message: string; attachments?: any[]; replyTo?: string }) => 
+    api.post('/chat/send', payload),
+  markSeen: (conversationId: string) => api.patch('/chat/seen', { conversationId }),
+  deleteMessage: (messageId: string) => api.delete('/chat/message', { data: { messageId } })
+};
+
+
+// Notification Center API
+export const notificationService = {
+  getNotifications: () => api.get('/notification'),
+  markRead: (id: string) => api.patch(`/notification/read/${id}`),
+  markAllRead: () => api.patch('/notification/read-all'),
+  createNotification: (payload: { receiverId: string; type: string; title: string; description: string; conversationId?: string; messageId?: string }) =>
+    api.post('/notification/create', payload)
+};
+
 export default api;
+

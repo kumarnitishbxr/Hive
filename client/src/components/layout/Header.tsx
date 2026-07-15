@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Terminal, Bell } from 'lucide-react';
+import { Search, Terminal } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
+import NotificationBell from './Notification/NotificationBell';
 
 interface HeaderProps {
   onSearchSelect: (tab: string) => void;
@@ -24,6 +25,8 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
   }, []);
 
   const commands = [
+    { name: 'Go to Chat Room', action: () => { onSearchSelect('chat'); setShowPalette(false); } },
+    { name: 'Open Notification Center', action: () => { onSearchSelect('notifications'); setShowPalette(false); } },
     { name: 'Go to Tasks board', action: () => { onSearchSelect('projects'); setShowPalette(false); } },
     { name: 'Go to Business Model Canvas', action: () => { onSearchSelect('profile'); setShowPalette(false); } },
     { name: 'Open Document OCR Locker', action: () => { onSearchSelect('documents'); setShowPalette(false); } },
@@ -49,16 +52,19 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
 
       {/* Notifications indicator */}
       <div className="flex items-center gap-4">
-        <button className="relative p-1.5 rounded-lg border border-white/5 text-gray-400 hover:text-gray-200 transition cursor-pointer">
-          <Bell size={15} />
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-        </button>
+        <NotificationBell 
+          onNavigateToNotifications={() => onSearchSelect('notifications')}
+          onNavigateToChat={(conversationId) => {
+            onSearchSelect('chat');
+          }}
+        />
         <div className="h-5 w-[1px] bg-white/10" />
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">WORKSPACE ACTIVE</span>
         </div>
       </div>
+
 
       {/* Command Palette Modal */}
       {showPalette && (

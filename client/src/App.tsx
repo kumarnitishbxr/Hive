@@ -7,7 +7,7 @@ import OnboardingForm from './features/onboarding/OnboardingForm';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 
-// Feature Modules
+// Feature Pages & Slices
 import DashboardOverview from './features/dashboard/DashboardOverview';
 import ProfileCanvas from './features/profile/ProfileCanvas';
 import WorkspaceEditor from './features/workspace/WorkspaceEditor';
@@ -16,6 +16,9 @@ import ValidationEngine from './features/validation/ValidationEngine';
 import InvestorCRM from './features/investors/InvestorCRM';
 import DocumentHub from './features/documents/DocumentHub';
 import AiCoach from './features/ai/AiCoach';
+import ChatPage from './pages/Chat';
+import NotificationsPage from './pages/Notifications';
+import useSocket from './hooks/useSocket';
 
 export const App: React.FC = () => {
   const dispatch = useDispatch();
@@ -27,6 +30,9 @@ export const App: React.FC = () => {
   // Force rerender trigger when authentication completes
   const [, setTick] = useState(0);
   const forceRerender = () => setTick(t => t + 1);
+
+  // Initialize Socket.io real-time engine globally when authenticated
+  useSocket();
 
   const handleOnboardingComplete = (startupId: string) => {
     dispatch(updateStartupContext({ startupId, role: 'Founder' }));
@@ -70,6 +76,8 @@ export const App: React.FC = () => {
           {activeTab === 'investors' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><InvestorCRM /></div>}
           {activeTab === 'documents' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><DocumentHub /></div>}
           {activeTab === 'ai' && <div className="flex-1 flex flex-col overflow-hidden p-6 max-w-7xl w-full mx-auto h-full min-h-0"><AiCoach /></div>}
+          {activeTab === 'chat' && <div className="flex-1 flex flex-col overflow-hidden h-full min-h-0"><ChatPage /></div>}
+          {activeTab === 'notifications' && <div className="flex-1 overflow-y-auto h-full min-h-0"><NotificationsPage onNavigateToChat={() => setActiveTab('chat')} /></div>}
         </main>
       </div>
     </div>
@@ -77,3 +85,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+
