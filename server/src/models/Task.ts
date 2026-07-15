@@ -8,13 +8,28 @@ export interface ITimeLog extends Document {
   loggedAt: Date;
 }
 
+export interface ITaskAttachment {
+  name: string;
+  url: string;
+  uploadedBy: Schema.Types.ObjectId;
+  createdAt: Date;
+}
+
+export interface ITaskChecklistItem {
+  item: string;
+  isCompleted: boolean;
+  completedBy?: Schema.Types.ObjectId;
+  completedAt?: Date;
+}
+
 export interface ITask extends Document {
   workspaceId: Schema.Types.ObjectId;
   projectId: Schema.Types.ObjectId;
+  milestoneId?: Schema.Types.ObjectId;
   sprintId?: Schema.Types.ObjectId;
   title: string;
   description?: string;
-  status: 'Backlog' | 'Todo' | 'In Progress' | 'In Review' | 'Done';
+  status: 'Backlog' | 'Todo' | 'To Do' | 'In Progress' | 'Blocked' | 'In Review' | 'Under Review' | 'Done' | 'Completed' | 'Approved' | 'Rejected';
   priority: 'Low' | 'Medium' | 'High' | 'Urgent';
   assignees: Schema.Types.ObjectId[];
   reporter: Schema.Types.ObjectId;
@@ -24,9 +39,10 @@ export interface ITask extends Document {
   actualHours?: number;
   parentTaskId?: Schema.Types.ObjectId;
   labels: string[];
+  tags: string[];
   dependencies: Schema.Types.ObjectId[]; // Array of taskIds this task depends on
-  checklist: { item: string; isCompleted: boolean }[];
-  attachments: { name: string; url: string; uploadedBy: Schema.Types.ObjectId; createdAt: Date }[];
+  checklist: ITaskChecklistItem[];
+  attachments: ITaskAttachment[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,12 +58,13 @@ const TimeLogSchema = new Schema<ITimeLog>({
 const TaskSchema = new Schema<ITask>({
   workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },
   projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
+  milestoneId: { type: Schema.Types.ObjectId, ref: 'Milestone', index: true },
   sprintId: { type: Schema.Types.ObjectId, ref: 'Sprint', index: true },
   title: { type: String, required: true },
   description: { type: String },
   status: { 
     type: String, 
-    enum: ['Backlog', 'Todo', 'In Progress', 'In Review', 'Done'], 
+    enum: ['Backlog', 'Todo', 'To Do', 'In Progress', 'Blocked', 'In Review', 'Under Review', 'Done', 'Completed', 'Approved', 'Rejected'], 
     default: 'Todo',
     index: true
   },
@@ -65,10 +82,13 @@ const TaskSchema = new Schema<ITask>({
   actualHours: { type: Number, default: 0 },
   parentTaskId: { type: Schema.Types.ObjectId, ref: 'Task', index: true },
   labels: [{ type: String }],
+  tags: [{ type: String }],
   dependencies: [{ type: Schema.Types.ObjectId, ref: 'Task' }],
   checklist: [{
     item: { type: String, required: true },
-    isCompleted: { type: Boolean, default: false }
+    isCompleted: { type: Boolean, default: false },
+    completedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    completedAt: { type: Date }
   }],
   attachments: [{
     name: { type: String, required: true },

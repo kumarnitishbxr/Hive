@@ -17,6 +17,8 @@ import aiRoutes from './routes/aiRoutes';
 import workspaceRoutes from './routes/workspaceRoutes';
 import chatRoutes from './routes/chatRoutes';
 import notificationRoutes from './routes/notificationRoutes';
+import taskRoutes from './routes/taskRoutes';
+import teamRoutes from './routes/teamRoutes';
 
 dotenv.config();
 
@@ -60,6 +62,8 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/workspace', workspaceRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/notification', notificationRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/team', teamRoutes);
 
 // Simple healthcheck
 app.get('/health', (req, res) => {

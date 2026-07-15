@@ -95,7 +95,7 @@ const ChangePassword: React.FC<ChangePasswordProps> = ({ onPasswordChanged }) =>
         <div className="bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/40">
           {/* Header */}
           <div className="p-8 pb-0 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-emerald-500 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-indigo-500/20">
+            <div className="w-16 h-16 rounded-2xl bg-linear-to-tr from-indigo-500 via-purple-500 to-emerald-500 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-indigo-500/20">
               <KeyRound size={28} className="text-white" />
             </div>
             <h1 className="text-2xl font-bold text-white mb-1">Secure Your Account</h1>

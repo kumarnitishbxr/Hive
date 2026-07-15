@@ -59,7 +59,16 @@ export const sendChat = async (req: Request, res: Response) => {
         await activeConversation.save();
       }
     } else {
-      return res.status(400).json({ error: 'Either conversationId or recipientId must be provided' });
+      // Create new group conversation
+      activeConversation = new Conversation({
+        workspaceId,
+        participants: [senderId],
+        type: 'group',
+        createdBy: senderId,
+        lastMessage: message || 'Group created',
+        lastMessageTime: new Date()
+      });
+      await activeConversation.save();
     }
 
     // Create the message
@@ -344,6 +353,37 @@ export const getChatMembers = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching chat members:', error);
     return res.status(500).json({ error: 'Internal Server Error fetching members' });
+  }
+};
+
+// PATCH /chat/conversations/:conversationId/update-group
+export const updateGroupConversation = async (req: Request, res: Response) => {
+  try {
+    const { conversationId } = req.params;
+    const { name, description, participants } = req.body;
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found.' });
+    }
+
+    if (name) conversation.name = name;
+    if (description) conversation.description = description;
+    if (participants && participants.length > 0) {
+      conversation.participants = participants.map((id: string) => new mongoose.Types.ObjectId(id));
+    }
+
+    await conversation.save();
+
+    // Broadcast group update
+    const io = req.app.get('io');
+    if (io) {
+      io.to(conversationId).emit('group-updated', conversation);
+    }
+
+    res.status(200).json(conversation);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to update group.' });
   }
 };
 

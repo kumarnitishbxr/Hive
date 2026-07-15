@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { aiService, projectService } from '../../services/api';
+import React, { useState } from 'react';
+import { useAiHealthReport } from '../../hooks/useReactQueries';
+import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { ShieldAlert, TrendingUp, Users, CheckSquare, Zap, Calculator } from 'lucide-react';
+import { Skeleton, CardSkeleton } from '../../components/Skeleton';
+import ErrorState from '../../components/ErrorState';
 
 export const DashboardOverview: React.FC = () => {
-  const [healthData, setHealthData] = useState<any>(null);
-  const [burndown, setBurndown] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: healthData, isLoading, isError, refetch } = useAiHealthReport();
 
   // Runway scenarios
   const [monthlyBurn, setMonthlyBurn] = useState(12000);
@@ -16,38 +17,46 @@ export const DashboardOverview: React.FC = () => {
   const [simulatedFunding, setSimulatedFunding] = useState(0);
   const [newHiresCost, setNewHiresCost] = useState(0);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const hRes = await aiService.getHealthReport();
-        setHealthData(hRes.data);
+  // Intersection Observer for Charts
+  const [chartRef, isChartVisible] = useIntersectionObserver({ threshold: 0.05, triggerOnce: true });
 
-        // Seed details or get sprint data
-        const mockBurndown = [
-          { date: 'Day 1', ideal: 100, actual: 100 },
-          { date: 'Day 3', ideal: 80, actual: 85 },
-          { date: 'Day 6', ideal: 60, actual: 55 },
-          { date: 'Day 9', ideal: 40, actual: 30 },
-          { date: 'Day 12', ideal: 20, actual: 15 },
-          { date: 'Day 14', ideal: 0, actual: 0 }
-        ];
-        setBurndown(mockBurndown);
-      } catch (err) {
-        console.error('Failed to load dashboard statistics', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[70vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="liquid-glass p-6 rounded-xl flex flex-col items-center justify-center text-center h-64">
+            <Skeleton className="h-28 w-28 rounded-full" />
+          </div>
+          <div className="liquid-glass p-6 rounded-xl md:col-span-2 h-64">
+            <Skeleton className="h-full w-full" />
+          </div>
+        </div>
       </div>
     );
   }
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-[70vh]">
+        <ErrorState onRetry={refetch} message="Failed to load dashboard health metrics." />
+      </div>
+    );
+  }
+
+  const mockBurndown = [
+    { date: 'Day 1', ideal: 100, actual: 100 },
+    { date: 'Day 3', ideal: 80, actual: 85 },
+    { date: 'Day 6', ideal: 60, actual: 55 },
+    { date: 'Day 9', ideal: 40, actual: 30 },
+    { date: 'Day 12', ideal: 20, actual: 15 },
+    { date: 'Day 14', ideal: 0, actual: 0 }
+  ];
 
   // Scenario computation
   const baseRunwayMonths = monthlyBurn > 0 ? (currentCash / monthlyBurn) : 0;
@@ -58,7 +67,7 @@ export const DashboardOverview: React.FC = () => {
     <div className="space-y-6">
       {/* Upper Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="liquid-glass p-6 rounded-xl relative overflow-hidden">
+        <div className="liquid-glass p-6 rounded-xl relative overflow-hidden border border-white/5 bg-slate-950/40">
           <div className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
             <Zap size={16} />
           </div>
@@ -69,7 +78,7 @@ export const DashboardOverview: React.FC = () => {
           <p className="text-[10px] text-indigo-400 font-semibold mt-1">Based on current cash metrics</p>
         </div>
 
-        <div className="liquid-glass p-6 rounded-xl relative overflow-hidden">
+        <div className="liquid-glass p-6 rounded-xl relative overflow-hidden border border-white/5 bg-slate-950/40">
           <div className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
             <TrendingUp size={16} />
           </div>
@@ -78,7 +87,7 @@ export const DashboardOverview: React.FC = () => {
           <p className="text-[10px] text-emerald-400 font-semibold mt-1">Operational server/staff overhead</p>
         </div>
 
-        <div className="liquid-glass p-6 rounded-xl relative overflow-hidden">
+        <div className="liquid-glass p-6 rounded-xl relative overflow-hidden border border-white/5 bg-slate-950/40">
           <div className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
             <Users size={16} />
           </div>
@@ -87,7 +96,7 @@ export const DashboardOverview: React.FC = () => {
           <p className="text-[10px] text-purple-400 font-semibold mt-1">Validated customer insights</p>
         </div>
 
-        <div className="liquid-glass p-6 rounded-xl relative overflow-hidden">
+        <div className="liquid-glass p-6 rounded-xl relative overflow-hidden border border-white/5 bg-slate-950/40">
           <div className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
             <CheckSquare size={16} />
           </div>
@@ -102,7 +111,7 @@ export const DashboardOverview: React.FC = () => {
       {/* Main Core Layout: Health Score Dial & Burndown Graph */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Health score dial (Liquid glass glowing ring) */}
-        <div className="liquid-glass p-6 rounded-xl flex flex-col items-center justify-center text-center">
+        <div className="liquid-glass p-6 rounded-xl flex flex-col items-center justify-center text-center border border-white/5 bg-slate-950/40">
           <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-6">Workspace Health Score</span>
           
           <div className="relative w-40 h-40 flex items-center justify-center">
@@ -138,7 +147,7 @@ export const DashboardOverview: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-6 w-full space-y-2">
+          <div className="mt-6 w-full space-y-2 font-sans">
             <div className="flex justify-between items-center text-xs">
               <span className="text-gray-400">Risk Assessment:</span>
               <span 
@@ -171,32 +180,36 @@ export const DashboardOverview: React.FC = () => {
         </div>
 
         {/* Burndown area graph */}
-        <div className="liquid-glass p-6 rounded-xl md:col-span-2">
+        <div ref={chartRef as any} className="liquid-glass p-6 rounded-xl md:col-span-2 border border-white/5 bg-slate-950/40">
           <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-4">Sprint Ideal vs Actual Burndown Curve</span>
           <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={burndown}>
-                <defs>
-                  <linearGradient id="colorIdeal" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" fontSize={9} />
-                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={9} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(3,7,18,0.9)', borderColor: 'rgba(255,255,255,0.08)', borderRadius: '8px' }}
-                  labelStyle={{ fontSize: '10px', color: '#9ca3af' }}
-                />
-                <Area type="monotone" dataKey="ideal" name="Ideal Remaining" stroke="#4f46e5" strokeWidth={2} fillOpacity={1} fill="url(#colorIdeal)" />
-                <Area type="monotone" dataKey="actual" name="Actual Remaining" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorActual)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {isChartVisible ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={mockBurndown}>
+                  <defs>
+                    <linearGradient id="colorIdeal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+                  <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" fontSize={9} />
+                  <YAxis stroke="rgba(255,255,255,0.3)" fontSize={9} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'rgba(3,7,18,0.9)', borderColor: 'rgba(255,255,255,0.08)', borderRadius: '8px' }}
+                    labelStyle={{ fontSize: '10px', color: '#9ca3af' }}
+                  />
+                  <Area type="monotone" dataKey="ideal" name="Ideal Remaining" stroke="#4f46e5" strokeWidth={2} fillOpacity={1} fill="url(#colorIdeal)" />
+                  <Area type="monotone" dataKey="actual" name="Actual Remaining" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorActual)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <Skeleton className="h-full w-full" />
+            )}
           </div>
         </div>
       </div>
@@ -204,7 +217,7 @@ export const DashboardOverview: React.FC = () => {
       {/* Dynamic AI insights panels & Runway calculator */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* AI Actionable Insights (Module 14) */}
-        <div className="liquid-glass p-6 rounded-xl md:col-span-2 space-y-3">
+        <div className="liquid-glass p-6 rounded-xl md:col-span-2 space-y-3 border border-white/5 bg-slate-950/40">
           <div className="flex items-center gap-2 border-b border-white/5 pb-3">
             <ShieldAlert size={16} className="text-amber-500 animate-pulse" />
             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">AI Operational Advisories</span>
@@ -213,14 +226,14 @@ export const DashboardOverview: React.FC = () => {
             {healthData?.insights?.map((ins: string, idx: number) => (
               <div key={idx} className="flex gap-3 text-xs bg-white/2 border border-white/5 p-3 rounded-lg">
                 <span className="text-amber-400 font-bold">⚠️</span>
-                <p className="text-gray-300 leading-relaxed">{ins}</p>
+                <p className="text-gray-300 leading-relaxed font-sans">{ins}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Runway Scenario Planner (Module 9 premium widget) */}
-        <div className="liquid-glass p-6 rounded-xl space-y-4">
+        <div className="liquid-glass p-6 rounded-xl space-y-4 border border-white/5 bg-slate-950/40">
           <div className="flex items-center gap-2 border-b border-white/5 pb-3">
             <Calculator size={16} className="text-indigo-400" />
             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Runway Scenario Simulator</span>
@@ -277,4 +290,5 @@ export const DashboardOverview: React.FC = () => {
     </div>
   );
 };
+
 export default DashboardOverview;

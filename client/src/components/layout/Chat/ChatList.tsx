@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useQueryClient } from '@tanstack/react-query';
 import { RootState } from '../../../store';
+import { useConversations, useTeamData } from '../../../hooks/useReactQueries';
+import { setActiveConversationId, ConversationType } from '../../../store/slices/chatSlice';
 import { chatService } from '../../../services/api';
-import { setConversations, setActiveConversationId, ConversationType } from '../../../store/slices/chatSlice';
-import { setUsers, UserProfile } from '../../../store/slices/userSlice';
 import { 
   Search, 
   Plus, 
   MessageSquare, 
   Hash, 
   Users, 
-  X, 
-  CircleDot 
+  X
 } from 'lucide-react';
+import { Skeleton } from '../../Skeleton';
 
 interface ChatListProps {
   onSelectConversation: (convoId: string) => void;
@@ -20,11 +21,16 @@ interface ChatListProps {
 
 export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const auth = useSelector((state: RootState) => state.auth);
   const chatState = useSelector((state: RootState) => state.chat);
   const userState = useSelector((state: RootState) => state.user);
   const workspaceId = useSelector((state: RootState) => state.workspace.activeWorkspaceId);
   
+  const { data: conversations = [], isLoading: isConvosLoading } = useConversations();
+  const { data: teamData } = useTeamData();
+  const teamMembers = teamData?.members || [];
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [modalType, setModalType] = useState<'direct' | 'group'>('direct');
@@ -35,46 +41,24 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [searchMemberQuery, setSearchMemberQuery] = useState('');
 
-  // Fetch conversations and startup members on mount or workspace change
-  useEffect(() => {
-    if (!workspaceId) return;
-    const loadConversationsAndMembers = async () => {
-      try {
-        const convoRes = await chatService.getConversations();
-        dispatch(setConversations(convoRes.data));
-
-        const membersRes = await chatService.getMembers();
-        dispatch(setUsers(membersRes.data));
-      } catch (err) {
-        console.error('Failed to load chat resources:', err);
-      }
-    };
-    loadConversationsAndMembers();
-  }, [dispatch, auth.startupId, workspaceId]);
-
   // Handle conversation select
   const handleSelectConvo = (convoId: string) => {
     dispatch(setActiveConversationId(convoId));
     onSelectConversation(convoId);
-    // Mark seen on backend
     chatService.markSeen(convoId);
   };
 
   // Start a new Direct Message conversation
   const startDirectChat = async (recipientId: string) => {
     try {
-      const workspaceId = localStorage.getItem('activeWorkspaceId') || '';
       const res = await chatService.sendMessage({
         recipientId,
         message: 'Started conversation',
         attachments: []
       });
       
-      // Reload conversations
-      const convoRes = await chatService.getConversations();
-      dispatch(setConversations(convoRes.data));
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       
-      // Select the conversation
       const conversationId = res.data.conversationId;
       dispatch(setActiveConversationId(conversationId));
       onSelectConversation(conversationId);
@@ -90,29 +74,12 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
   const startGroupChat = async () => {
     if (!groupName.trim()) return;
     try {
-      const workspaceId = localStorage.getItem('activeWorkspaceId') || '';
-      
-      // Call create endpoint or send message to initialize group
-      // In our controller, we can send a message with multiple recipients
-      // Or we can just reuse sendMessage by passing recipients array in participants
-      // Let's create the group first by sending initial announcement.
-      // We will add all selectedUserIds and the sender as participants.
       const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null;
       const participants = [...selectedUserIds, user.id];
       
-      // For groups, we send group name and description
-      const payload: any = {
-        message: `Created group channel #${groupName}`,
-        attachments: [],
-        workspaceId // Attach active workspace context
-      };
-      
-      // We will call send endpoint with conversation initialization params
       const res = await apiCreateGroupConversation(groupName, groupDescription, participants);
       
-      // Reload conversations
-      const convoRes = await chatService.getConversations();
-      dispatch(setConversations(convoRes.data));
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       
       dispatch(setActiveConversationId(res._id));
       onSelectConversation(res._id);
@@ -130,31 +97,27 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
   const apiCreateGroupConversation = async (name: string, desc: string, userIds: string[]) => {
     const token = localStorage.getItem('token');
     const startupId = localStorage.getItem('startupId');
-    const workspaceId = localStorage.getItem('activeWorkspaceId') || '';
+    const activeWorkspaceId = workspaceId || '';
     const baseApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
     
-    // Create conversation directly on backend
     const response = await fetch(`${baseApiUrl}/chat/send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
         'x-startup-id': startupId || '',
-        'x-workspace-id': workspaceId
+        'x-workspace-id': activeWorkspaceId
       },
       body: JSON.stringify({
         message: `Welcome to the new channel #${name}. ${desc}`,
         attachments: [],
-        workspaceId
+        workspaceId: activeWorkspaceId
       })
     });
     
     const initialMsg = await response.json();
-    
-    // Find conversation and modify it to group on backend if needed, 
-    // but our controller does this automatically if we pass recipients or initialize it.
-    // Let's make sure we update conversation type to group and set name.
     const convoId = initialMsg.conversationId;
+    
     await fetch(`${baseApiUrl}/chat/conversations/${convoId}/update-group`, {
       method: 'PATCH',
       headers: {
@@ -173,10 +136,10 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
   };
 
   // Filters conversations based on query
-  const filteredConversations = chatState.conversations.filter(convo => {
+  const filteredConversations = conversations.filter((convo: any) => {
     if (convo.type === 'direct') {
-      const recipient = convo.participants.find(p => p._id !== auth.user?.id);
-      return recipient?.fullName.toLowerCase().includes(searchQuery.toLowerCase());
+      const recipient = convo.participants.find((p: any) => p._id !== auth.user?.id);
+      return (recipient?.fullName || '').toLowerCase().includes(searchQuery.toLowerCase());
     } else {
       return convo.name?.toLowerCase().includes(searchQuery.toLowerCase());
     }
@@ -251,117 +214,121 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
 
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto p-2 space-y-4">
-        {/* Group Channels Section */}
-        <div>
-          <span className="px-2 text-[10px] text-gray-500 font-extrabold tracking-wider uppercase flex items-center gap-1 mb-1">
-            <Hash size={10} /> CHANNELS ({filteredConversations.filter(c => c.type === 'group').length})
-          </span>
-          <div className="space-y-0.5">
-            {filteredConversations.filter(c => c.type === 'group').map(convo => {
-              const isActive = chatState.activeConversationId === convo._id;
-              // Check if anyone is typing in this room
-              const typingUsers = chatState.typingStatus[convo._id];
-              const someoneTyping = typingUsers ? Object.values(typingUsers).filter(t => t.isTyping) : [];
-
-              return (
-                <button
-                  key={convo._id}
-                  onClick={() => handleSelectConvo(convo._id)}
-                  className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition cursor-pointer ${
-                    isActive 
-                      ? 'bg-white/5 border border-white/10 text-indigo-400' 
-                      : 'text-gray-400 hover:bg-white/2 hover:text-gray-200 border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 truncate flex-1">
-                    <Hash size={14} className={isActive ? 'text-indigo-400' : 'text-gray-500'} />
-                    <div className="truncate flex-1">
-                      <p className="text-xs font-bold text-gray-200 truncate">{convo.name}</p>
-                      <p className="text-[10px] text-gray-500 truncate">
-                        {someoneTyping.length > 0 
-                          ? `${someoneTyping[0].userName} is typing...`
-                          : convo.lastMessage || 'No messages yet'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <span className="text-[9px] text-gray-500">{formatLastActive(convo.lastMessageTime)}</span>
-                    {convo.unreadCount > 0 && (
-                      <span className="w-4 h-4 rounded-full bg-indigo-600 text-white font-extrabold text-[9px] flex items-center justify-center animate-pulse">
-                        {convo.unreadCount}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
+        {isConvosLoading ? (
+          <div className="space-y-3 p-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Group Channels Section */}
+            <div>
+              <span className="px-2 text-[10px] text-gray-500 font-extrabold tracking-wider uppercase flex items-center gap-1 mb-1">
+                <Hash size={10} /> CHANNELS ({filteredConversations.filter((c: any) => c.type === 'group').length})
+              </span>
+              <div className="space-y-0.5">
+                {filteredConversations.filter((c: any) => c.type === 'group').map((convo: any) => {
+                  const isActive = chatState.activeConversationId === convo._id;
+                  const typingUsers = chatState.typingStatus[convo._id];
+                  const someoneTyping = typingUsers ? Object.values(typingUsers).filter(t => t.isTyping) : [];
 
-        {/* Direct Messages Section */}
-        <div>
-          <span className="px-2 text-[10px] text-gray-500 font-extrabold tracking-wider uppercase flex items-center gap-1 mb-1">
-            <Users size={10} /> DIRECT MESSAGES ({filteredConversations.filter(c => c.type === 'direct').length})
-          </span>
-          <div className="space-y-0.5">
-            {filteredConversations.filter(c => c.type === 'direct').map(convo => {
-              const isActive = chatState.activeConversationId === convo._id;
-              const info = getRecipientInfo(convo);
-              
-              // Typing status check
-              const typingUsers = chatState.typingStatus[convo._id];
-              const someoneTyping = typingUsers ? Object.values(typingUsers).filter(t => t.isTyping) : [];
-
-              return (
-                <button
-                  key={convo._id}
-                  onClick={() => handleSelectConvo(convo._id)}
-                  className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition cursor-pointer ${
-                    isActive 
-                      ? 'bg-white/5 border border-white/10 text-indigo-400' 
-                      : 'text-gray-400 hover:bg-white/2 hover:text-gray-200 border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 truncate flex-1">
-                    {/* Avatar with Online/Offline indicator */}
-                    <div className="relative">
-                      {info.avatar ? (
-                        <img src={info.avatar} alt={info.name} className="w-7 h-7 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center font-bold text-[10px] text-indigo-400 uppercase border border-white/5">
-                          {info.name.charAt(0)}
+                  return (
+                    <button
+                      key={convo._id}
+                      onClick={() => handleSelectConvo(convo._id)}
+                      className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition cursor-pointer ${
+                        isActive 
+                          ? 'bg-white/5 border border-white/10 text-indigo-400' 
+                          : 'text-gray-400 hover:bg-white/2 hover:text-gray-200 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate flex-1">
+                        <Hash size={14} className={isActive ? 'text-indigo-400' : 'text-gray-500'} />
+                        <div className="truncate flex-1">
+                          <p className="text-xs font-bold text-gray-200 truncate">{convo.name}</p>
+                          <p className="text-[10px] text-gray-500 truncate">
+                            {someoneTyping.length > 0 
+                              ? `${someoneTyping[0].userName} is typing...`
+                              : convo.lastMessage || 'No messages yet'}
+                          </p>
                         </div>
-                      )}
-                      <div className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-slate-950 ${info.isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'}`} />
-                    </div>
-
-                    <div className="truncate flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-xs font-bold text-gray-200 truncate">{info.name}</p>
-                        <span className="text-[8px] bg-slate-800 border border-white/5 px-1 py-0.2 rounded font-semibold text-gray-400 capitalize">
-                          {info.role}
-                        </span>
                       </div>
-                      <p className="text-[10px] text-gray-500 truncate">
-                        {someoneTyping.length > 0
-                          ? `typing...`
-                          : convo.lastMessage}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <span className="text-[9px] text-gray-500">{formatLastActive(convo.lastMessageTime)}</span>
-                    {convo.unreadCount > 0 && (
-                      <span className="w-4 h-4 rounded-full bg-indigo-600 text-white font-extrabold text-[9px] flex items-center justify-center animate-pulse">
-                        {convo.unreadCount}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <span className="text-[9px] text-gray-500">{formatLastActive(convo.lastMessageTime)}</span>
+                        {convo.unreadCount > 0 && (
+                          <span className="w-4 h-4 rounded-full bg-indigo-600 text-white font-extrabold text-[9px] flex items-center justify-center animate-pulse">
+                            {convo.unreadCount}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Direct Messages Section */}
+            <div>
+              <span className="px-2 text-[10px] text-gray-500 font-extrabold tracking-wider uppercase flex items-center gap-1 mb-1">
+                <Users size={10} /> DIRECT MESSAGES ({filteredConversations.filter((c: any) => c.type === 'direct').length})
+              </span>
+              <div className="space-y-0.5">
+                {filteredConversations.filter((c: any) => c.type === 'direct').map((convo: any) => {
+                  const isActive = chatState.activeConversationId === convo._id;
+                  const info = getRecipientInfo(convo);
+                  const typingUsers = chatState.typingStatus[convo._id];
+                  const someoneTyping = typingUsers ? Object.values(typingUsers).filter(t => t.isTyping) : [];
+
+                  return (
+                    <button
+                      key={convo._id}
+                      onClick={() => handleSelectConvo(convo._id)}
+                      className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition cursor-pointer ${
+                        isActive 
+                          ? 'bg-white/5 border border-white/10 text-indigo-400' 
+                          : 'text-gray-400 hover:bg-white/2 hover:text-gray-200 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate flex-1">
+                        <div className="relative">
+                          {info.avatar ? (
+                            <img src={info.avatar} alt={info.name} className="w-7 h-7 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center font-bold text-[10px] text-indigo-400 uppercase border border-white/5">
+                              {info.name.charAt(0)}
+                            </div>
+                          )}
+                          <div className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-slate-950 ${info.isOnline ? 'bg-emerald-500' : 'bg-gray-600'}`} />
+                        </div>
+
+                        <div className="truncate flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-bold text-gray-200 truncate">{info.name}</p>
+                            <span className="text-[8px] bg-slate-800 border border-white/5 px-1 py-0.2 rounded font-semibold text-gray-400 capitalize">
+                              {info.role}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-gray-500 truncate">
+                            {someoneTyping.length > 0 ? `typing...` : convo.lastMessage}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <span className="text-[9px] text-gray-500">{formatLastActive(convo.lastMessageTime)}</span>
+                        {convo.unreadCount > 0 && (
+                          <span className="w-4 h-4 rounded-full bg-indigo-600 text-white font-extrabold text-[9px] flex items-center justify-center animate-pulse">
+                            {convo.unreadCount}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Startup Members DM / Group creation Modal */}
@@ -411,9 +378,9 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
               />
               
               <div className="max-h-48 overflow-y-auto divide-y divide-white/5 border border-white/5 rounded-lg">
-                {userState.users
-                  .filter(u => u._id !== auth.user?.id && u.fullName.toLowerCase().includes(searchMemberQuery.toLowerCase()))
-                  .map(user => {
+                {teamMembers
+                  .filter((u: any) => u._id !== auth.user?.id && u.fullName.toLowerCase().includes(searchMemberQuery.toLowerCase()))
+                  .map((user: any) => {
                     const isSelected = selectedUserIds.includes(user._id);
                     return (
                       <div 

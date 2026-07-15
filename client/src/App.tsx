@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from './store';
 import { updateStartupContext, logout } from './store/slices/authSlice';
@@ -7,29 +7,45 @@ import AuthPages from './features/auth/AuthPages';
 import OnboardingForm from './features/onboarding/OnboardingForm';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
-import { Mail, Loader2 } from 'lucide-react';
+import { Mail, Loader2, Sparkles } from 'lucide-react';
 import { teamManagementService, workspaceService } from './services/api';
-
-// Feature Pages & Slices
-import DashboardOverview from './features/dashboard/DashboardOverview';
-import ProfileCanvas from './features/profile/ProfileCanvas';
-import WorkspaceEditor from './features/workspace/WorkspaceEditor';
-import ProjectKanban from './features/projects/ProjectKanban';
-import ValidationEngine from './features/validation/ValidationEngine';
-import InvestorCRM from './features/investors/InvestorCRM';
-import DocumentHub from './features/documents/DocumentHub';
-import AiCoach from './features/ai/AiCoach';
-import ChatPage from './pages/Chat';
-import NotificationsPage from './pages/Notifications';
-import ChangePassword from './pages/ChangePassword';
-import Team from './pages/Team';
-import MemberProfile from './pages/MemberProfile';
-import WorkforceTasks from './pages/WorkforceTasks';
 import useSocket from './hooks/useSocket';
+import ErrorBoundary from './components/ErrorBoundary';
+import { Skeleton } from './components/Skeleton';
+
+// Code Splitting / Lazy Loading Features
+const DashboardOverview = React.lazy(() => import('./features/dashboard/DashboardOverview'));
+const ProfileCanvas = React.lazy(() => import('./features/profile/ProfileCanvas'));
+const WorkspaceEditor = React.lazy(() => import('./features/workspace/WorkspaceEditor'));
+const ProjectKanban = React.lazy(() => import('./features/projects/ProjectKanban'));
+const ValidationEngine = React.lazy(() => import('./features/validation/ValidationEngine'));
+const InvestorCRM = React.lazy(() => import('./features/investors/InvestorCRM'));
+const DocumentHub = React.lazy(() => import('./features/documents/DocumentHub'));
+const AiCoach = React.lazy(() => import('./features/ai/AiCoach'));
+const ChatPage = React.lazy(() => import('./pages/Chat'));
+const NotificationsPage = React.lazy(() => import('./pages/Notifications'));
+const ChangePassword = React.lazy(() => import('./pages/ChangePassword'));
+const Team = React.lazy(() => import('./pages/Team'));
+const MemberProfile = React.lazy(() => import('./pages/MemberProfile'));
+const WorkforceTasks = React.lazy(() => import('./pages/WorkforceTasks'));
+
+// Shimmer Loader Fallback for Lazy-Loaded Sections
+const LazyFallback: React.FC = () => (
+  <div className="space-y-4 p-6 w-full max-w-7xl mx-auto">
+    <Skeleton className="h-8 w-1/4" />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Skeleton className="h-32" />
+      <Skeleton className="h-32" />
+      <Skeleton className="h-32" />
+    </div>
+    <Skeleton className="h-64 w-full" />
+  </div>
+);
 
 export const App: React.FC = () => {
   const dispatch = useDispatch();
   const auth = useSelector((state: RootState) => state.auth);
+  const [showFloatingAi, setShowFloatingAi] = useState(false);
   
   const isFounder = auth.role === 'Founder' || auth.role === 'Co-Founder';
   
@@ -61,7 +77,7 @@ export const App: React.FC = () => {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     checkPendingInvitation();
     loadWorkspacesGlobally();
   }, [auth.isAuthenticated, auth.startupId]);
@@ -99,7 +115,7 @@ export const App: React.FC = () => {
   };
 
   // Redirect to correct default landing tab if role changes or if they are on a restricted tab
-  React.useEffect(() => {
+  useEffect(() => {
     if (auth.isAuthenticated && auth.role) {
       const isCurrentFounder = auth.role === 'Founder' || auth.role === 'Co-Founder';
       if (!isCurrentFounder && ['dashboard', 'validation', 'investors', 'documents'].includes(activeTab)) {
@@ -133,7 +149,6 @@ export const App: React.FC = () => {
   if (auth.user?.firstLogin) {
     return <ChangePassword onPasswordChanged={() => {
       forceRerender();
-      // The auth state will be refreshed on next API call
       window.location.reload();
     }} />;
   }
@@ -156,7 +171,7 @@ export const App: React.FC = () => {
 
   // 4. Fully Configured -> Render Liquid Glass Dashboard Workspaces
   return (
-    <div className="flex h-screen bg-slate-950 relative overflow-hidden text-gray-100">
+    <div className="flex h-screen bg-slate-950 relative overflow-hidden text-gray-100 font-sans">
       {/* Visual Organic Mesh Gradients Floating in Background */}
       <div className="mesh-glow mesh-indigo" />
       <div className="mesh-glow mesh-purple" />
@@ -206,24 +221,54 @@ export const App: React.FC = () => {
 
         {/* Workspace Dynamic Main Viewer */}
         <main className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
-          {activeTab === 'dashboard' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><DashboardOverview /></div>}
-          {activeTab === 'profile' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><ProfileCanvas /></div>}
-          {activeTab === 'workspace' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><WorkspaceEditor /></div>}
-          {activeTab === 'projects' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><ProjectKanban /></div>}
-          {activeTab === 'validation' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><ValidationEngine /></div>}
-          {activeTab === 'investors' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><InvestorCRM /></div>}
-          {activeTab === 'documents' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><DocumentHub /></div>}
-          {activeTab === 'team' && <Team onViewMember={handleViewMember} />}
-          {activeTab === 'member-profile' && viewingMemberId && <MemberProfile memberId={viewingMemberId} onBack={handleBackFromProfile} />}
-          {activeTab === 'workforce-tasks' && <WorkforceTasks />}
-          {activeTab === 'ai' && <div className="flex-1 flex flex-col overflow-hidden p-6 max-w-7xl w-full mx-auto h-full min-h-0"><AiCoach /></div>}
-          {activeTab === 'chat' && <div className="flex-1 flex flex-col overflow-hidden h-full min-h-0"><ChatPage /></div>}
-          {activeTab === 'notifications' && <div className="flex-1 overflow-y-auto h-full min-h-0"><NotificationsPage onNavigateToChat={() => setActiveTab('chat')} /></div>}
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              {activeTab === 'dashboard' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><DashboardOverview /></div>}
+              {activeTab === 'profile' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><ProfileCanvas /></div>}
+              {activeTab === 'workspace' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><WorkspaceEditor /></div>}
+              {activeTab === 'projects' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><ProjectKanban /></div>}
+              {activeTab === 'validation' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><ValidationEngine /></div>}
+              {activeTab === 'investors' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><InvestorCRM /></div>}
+              {activeTab === 'documents' && <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto"><DocumentHub /></div>}
+              {activeTab === 'team' && <Team onViewMember={handleViewMember} />}
+              {activeTab === 'member-profile' && viewingMemberId && <MemberProfile memberId={viewingMemberId} onBack={handleBackFromProfile} />}
+              {activeTab === 'workforce-tasks' && <WorkforceTasks />}
+              {activeTab === 'ai' && <div className="flex-1 flex flex-col overflow-hidden p-6 max-w-7xl w-full mx-auto h-full min-h-0"><AiCoach /></div>}
+              {activeTab === 'chat' && <div className="flex-1 flex flex-col overflow-hidden h-full min-h-0"><ChatPage /></div>}
+              {activeTab === 'notifications' && <div className="flex-1 overflow-y-auto h-full min-h-0"><NotificationsPage onNavigateToChat={() => setActiveTab('chat')} /></div>}
+            </Suspense>
+          </ErrorBoundary>
         </main>
+        {/* Floating AI Agent FAB and Panel */}
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 select-none">
+          {showFloatingAi && (
+            <div className="w-[380px] h-[550px] rounded-2xl border border-white/10 bg-slate-950/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col mb-2">
+              <div className="flex justify-between items-center bg-white/2 px-4 py-2.5 border-b border-white/5">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">AI Co-Founder Panel</span>
+                <button 
+                  onClick={() => setShowFloatingAi(false)}
+                  className="text-gray-500 hover:text-white transition cursor-pointer text-xs p-1"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="flex-grow min-h-0 overflow-hidden">
+                <AiCoach />
+              </div>
+            </div>
+          )}
+          <button
+            onClick={() => setShowFloatingAi(prev => !prev)}
+            className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-xl shadow-indigo-500/25 transition-transform duration-300 hover:scale-105 cursor-pointer bg-gradient-to-tr from-indigo-500 via-purple-500 to-emerald-500 relative`}
+            title="Ask AI Co-Founder"
+          >
+            <Sparkles size={20} className={showFloatingAi ? 'rotate-12' : 'animate-pulse'} />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-slate-950 rounded-full" />
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
 export default App;
-

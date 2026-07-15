@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { setMembers, removeMemberLocal, updateMemberRoleLocal, setTeamLoading } from '../store/slices/teamSlice';
-import { setMentors } from '../store/slices/mentorSlice';
-import { setInvitations } from '../store/slices/invitationSlice';
+import { useTeamData } from '../hooks/useReactQueries';
 import { teamManagementService } from '../services/api';
 import {
   Users, UserPlus, GraduationCap, Clock, CheckCircle2, AlertTriangle,
@@ -11,19 +9,31 @@ import {
   ChevronDown, X, Loader2, Send, Trash2, RefreshCw, Award, Globe,
   Briefcase, Eye, Shield, UserCheck, UserMinus, TrendingUp, Zap, Crown, Star
 } from 'lucide-react';
+import { TableSkeleton } from '../components/Skeleton';
+import ErrorState from '../components/ErrorState';
 
 interface TeamPageProps {
   onViewMember?: (memberId: string) => void;
 }
 
 const Team: React.FC<TeamPageProps> = ({ onViewMember }) => {
-  const dispatch = useDispatch();
-  const members = useSelector((state: RootState) => state.team.members);
-  const mentors = useSelector((state: RootState) => state.mentor.mentors);
-  const invitations = useSelector((state: RootState) => state.invitation.invitations);
-  const isLoading = useSelector((state: RootState) => state.team.isLoading);
+  const { data: teamData, isLoading, isError, refetch } = useTeamData();
   const auth = useSelector((state: RootState) => state.auth);
   const isFounder = auth.role === 'Founder' || auth.role === 'Co-Founder';
+
+  const rawMembers = teamData?.members || [];
+  const members = rawMembers.filter((m: any) => m.role !== 'Mentor');
+  const mentors = rawMembers.filter((m: any) => m.role === 'Mentor');
+  const invitations = (teamData?.invitations || []).map((inv: any) => ({
+    _id: inv._id,
+    name: inv.name,
+    email: inv.email,
+    role: inv.role,
+    status: inv.status,
+    sentDate: inv.createdAt,
+    expiresAt: inv.expiresAt,
+    createdAt: inv.createdAt
+  }));
 
   const [activeView, setActiveView] = useState<'dashboard' | 'members' | 'mentors' | 'invitations'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,47 +55,6 @@ const Team: React.FC<TeamPageProps> = ({ onViewMember }) => {
   const [mentorForm, setMentorForm] = useState({
     fullName: '', email: '', expertise: '', linkedin: '', experience: '', message: ''
   });
-
-  // Fetch team data
-  useEffect(() => {
-    loadTeamData();
-  }, []);
-
-  const loadTeamData = async () => {
-    dispatch(setTeamLoading(true));
-    try {
-      const res = await teamManagementService.getMembers();
-      const data = res.data;
-      const allMembers = data.members || [];
-      const teamMembers = allMembers.filter((m: any) => m.role !== 'Mentor');
-      const mentorMembers = allMembers.filter((m: any) => m.role === 'Mentor');
-      dispatch(setMembers(allMembers));
-      dispatch(setMentors(mentorMembers.map((m: any) => ({
-        _id: m._id,
-        fullName: m.fullName,
-        email: m.email,
-        avatarUrl: m.avatarUrl,
-        role: 'Mentor' as const,
-        expertise: m.skills || [],
-        feedbackGivenCount: 0,
-        meetingsScheduledCount: 0
-      }))));
-      dispatch(setInvitations((data.invitations || []).map((inv: any) => ({
-        _id: inv._id,
-        name: inv.name,
-        email: inv.email,
-        role: inv.role,
-        status: inv.status,
-        sentDate: inv.createdAt,
-        expiresAt: inv.expiresAt,
-        createdAt: inv.createdAt
-      }))));
-    } catch (err) {
-      console.error('Error loading team data:', err);
-    } finally {
-      dispatch(setTeamLoading(false));
-    }
-  };
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -111,7 +80,7 @@ const Team: React.FC<TeamPageProps> = ({ onViewMember }) => {
       showToast('Invitation sent successfully!', 'success');
       setShowInviteModal(false);
       setInviteForm({ fullName: '', email: '', phone: '', department: '', role: 'Team Member', designation: '', joiningDate: '', skills: '', employmentType: 'Full-Time' });
-      loadTeamData();
+      refetch();
     } catch (err: any) {
       showToast(err?.response?.data?.error || 'Failed to send invitation', 'error');
     } finally {
@@ -134,7 +103,7 @@ const Team: React.FC<TeamPageProps> = ({ onViewMember }) => {
       showToast('Mentor invitation sent!', 'success');
       setShowMentorInviteModal(false);
       setMentorForm({ fullName: '', email: '', expertise: '', linkedin: '', experience: '', message: '' });
-      loadTeamData();
+      refetch();
     } catch (err: any) {
       showToast(err?.response?.data?.error || 'Failed to invite mentor', 'error');
     } finally {
@@ -146,9 +115,9 @@ const Team: React.FC<TeamPageProps> = ({ onViewMember }) => {
   const handleChangeRole = async (memberId: string, newRole: string) => {
     try {
       await teamManagementService.changeRole({ memberId, role: newRole });
-      dispatch(updateMemberRoleLocal({ memberId, role: newRole }));
       showToast('Role updated successfully', 'success');
       setShowRoleModal(null);
+      refetch();
     } catch (err: any) {
       showToast(err?.response?.data?.error || 'Failed to change role', 'error');
     }
@@ -158,9 +127,9 @@ const Team: React.FC<TeamPageProps> = ({ onViewMember }) => {
   const handleRemoveMember = async (memberId: string) => {
     try {
       await teamManagementService.removeMember(memberId);
-      dispatch(removeMemberLocal(memberId));
       showToast('Member removed from workspace', 'success');
       setShowRemoveConfirm(null);
+      refetch();
     } catch (err: any) {
       showToast(err?.response?.data?.error || 'Failed to remove member', 'error');
     }
@@ -171,11 +140,12 @@ const Team: React.FC<TeamPageProps> = ({ onViewMember }) => {
     try {
       await teamManagementService.resendInvite(invitationId);
       showToast('Invitation resent!', 'success');
-      loadTeamData();
+      refetch();
     } catch (err: any) {
       showToast(err?.response?.data?.error || 'Failed to resend', 'error');
     }
   };
+
 
   // Filter members
   const filteredMembers = members.filter(m => {
@@ -777,6 +747,14 @@ const Team: React.FC<TeamPageProps> = ({ onViewMember }) => {
   // ────────────────────────────────────────────────
   // MAIN LAYOUT
   // ────────────────────────────────────────────────
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-[70vh]">
+        <ErrorState onRetry={refetch} message="Failed to load team workspace data." />
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto">
       {/* Page Header */}

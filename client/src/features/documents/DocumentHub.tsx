@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { documentService } from '../../services/api';
-import { Plus, Search, FileText, Download, Trash2, Eye, ShieldCheck, Database, FileDigit } from 'lucide-react';
+import React, { useState } from 'react';
+import { useDocuments, useUploadDocument, useDeleteDocument } from '../../hooks/useReactQueries';
+import { useDebounce } from '../../hooks/useDebounce';
+import { Search, FileText, Download, Trash2, Eye, ShieldCheck, Database, FileDigit } from 'lucide-react';
+import VirtualList from '../../components/VirtualList';
+import { Skeleton } from '../../components/Skeleton';
+import ErrorState from '../../components/ErrorState';
 
 export const DocumentHub: React.FC = () => {
-  const [documents, setDocuments] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
+
   const [activeCategory, setActiveCategory] = useState<string>('');
-  const [loading, setLoading] = useState(true);
 
   // New Document upload inputs
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -17,33 +21,26 @@ export const DocumentHub: React.FC = () => {
   // Selected OCR parsed view
   const [viewOcrDoc, setViewOcrDoc] = useState<any>(null);
 
-  useEffect(() => {
-    fetchDocuments();
-  }, [activeCategory, search]);
+  // Query variables memoization
+  const queryParams = React.useMemo(() => {
+    const q: any = {};
+    if (activeCategory) q.category = activeCategory;
+    if (debouncedSearch) q.search = debouncedSearch;
+    return q;
+  }, [activeCategory, debouncedSearch]);
 
-  const fetchDocuments = async () => {
-    try {
-      const q: any = {};
-      if (activeCategory) q.category = activeCategory;
-      if (search) q.search = search;
-
-      const res = await documentService.getDocuments(q);
-      setDocuments(res.data.documents);
-    } catch (err) {
-      console.error('Failed to load documents catalog', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query Hooks
+  const { data: documents = [], isLoading, isError, refetch } = useDocuments(queryParams);
+  const uploadDocMutation = useUploadDocument();
+  const deleteDocMutation = useDeleteDocument();
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!docName || !docCategory) return;
 
     try {
-      // Simulate file upload placeholder url
       const finalUrl = docUrl || 'https://cloudinary.com/f/custom_invoice_holder.pdf';
-      await documentService.uploadDocument({
+      await uploadDocMutation.mutateAsync({
         name: docName,
         category: docCategory,
         url: finalUrl,
@@ -53,9 +50,10 @@ export const DocumentHub: React.FC = () => {
       setShowUploadModal(false);
       setDocName('');
       setDocUrl('');
-      // Trigger live poll after 4 seconds to catch OCR resolution
-      fetchDocuments();
-      setTimeout(fetchDocuments, 4500);
+      
+      // Live reload trigger
+      refetch();
+      setTimeout(refetch, 4500);
     } catch (err) {
       console.error('Failed to upload document file', err);
     }
@@ -63,21 +61,12 @@ export const DocumentHub: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await documentService.deleteDocument(id);
-      fetchDocuments();
+      await deleteDocMutation.mutateAsync(id);
       if (viewOcrDoc?._id === id) setViewOcrDoc(null);
     } catch (err) {
       console.error('Delete failed', err);
     }
   };
-
-  if (loading && documents.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-[70vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
-      </div>
-    );
-  }
 
   const categories = [
     { id: '', label: 'All Filings' },
@@ -89,8 +78,16 @@ export const DocumentHub: React.FC = () => {
     { id: 'Contracts', label: 'Contracts' }
   ];
 
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-[70vh]">
+        <ErrorState onRetry={refetch} message="Failed to load document catalog archive." />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       {/* Search and Category navigation */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
         {/* Category Pills */}
@@ -133,67 +130,79 @@ export const DocumentHub: React.FC = () => {
 
       {/* Main split file catalog and OCR detail pane */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Filings grid list */}
-        <div className="md:col-span-2 space-y-3 max-h-[65vh] overflow-y-auto pr-2">
-          {documents.length > 0 ? (
-            documents.map((doc) => (
-              <div key={doc._id} className="liquid-glass p-4 rounded-xl flex items-center justify-between text-xs gap-4">
-                <div className="flex items-center gap-3 truncate">
-                  <div className="w-9 h-9 rounded-lg bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
-                    <FileDigit size={16} />
-                  </div>
-                  <div className="truncate space-y-0.5">
-                    <h4 className="font-bold text-white truncate">{doc.name}</h4>
-                    <div className="flex items-center gap-2 text-[9px] text-gray-500">
-                      <span className="bg-white/5 border border-white/10 px-1 py-0.2 rounded font-bold uppercase">{doc.category}</span>
-                      <span>•</span>
-                      <span>{(doc.sizeBytes / 1024).toFixed(0)} KB</span>
+        {/* Filings grid list (Virtualized) */}
+        <div className="md:col-span-2 border border-white/5 rounded-xl bg-slate-900/10 p-2">
+          {isLoading ? (
+            <div className="space-y-3 p-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : (
+            <VirtualList
+              items={documents}
+              estimateSize={65}
+              heightClass="h-[65vh]"
+              emptyComponent={
+                <p className="text-center text-xs text-gray-500 py-12">No files found matching catalog categories.</p>
+              }
+              renderItem={(doc: any) => (
+                <div className="liquid-glass p-4 rounded-xl flex items-center justify-between text-xs gap-4 my-1 border border-white/5 bg-slate-950/40">
+                  <div className="flex items-center gap-3 truncate">
+                    <div className="w-9 h-9 rounded-lg bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
+                      <FileDigit size={16} />
+                    </div>
+                    <div className="truncate space-y-0.5">
+                      <h4 className="font-bold text-white truncate">{doc.name}</h4>
+                      <div className="flex items-center gap-2 text-[9px] text-gray-500">
+                        <span className="bg-white/5 border border-white/10 px-1 py-0.2 rounded font-bold uppercase">{doc.category}</span>
+                        <span>•</span>
+                        <span>{(doc.sizeBytes / 1024).toFixed(0)} KB</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  {doc.ocrStatus === 'Completed' ? (
-                    <button 
-                      onClick={() => setViewOcrDoc(doc)}
-                      className="p-1.5 bg-white/5 border border-white/10 hover:bg-indigo-600 hover:border-indigo-500 hover:text-white rounded text-gray-400 transition cursor-pointer"
-                      title="Inspect OCR Content"
+                  <div className="flex items-center gap-2 shrink-0">
+                    {doc.ocrStatus === 'Completed' ? (
+                      <button 
+                        onClick={() => setViewOcrDoc(doc)}
+                        className="p-1.5 bg-white/5 border border-white/10 hover:bg-indigo-600 hover:border-indigo-500 hover:text-white rounded text-gray-400 transition cursor-pointer outline-none"
+                        title="Inspect OCR Content"
+                      >
+                        <Eye size={12} />
+                      </button>
+                    ) : doc.ocrStatus === 'Pending' ? (
+                      <span className="text-[8px] bg-amber-500/10 text-amber-500 px-2 py-1 rounded font-bold border border-amber-500/20 animate-pulse shrink-0">
+                        OCR PENDING
+                      </span>
+                    ) : (
+                      <span className="text-[8px] bg-red-500/10 text-red-500 px-2 py-1 rounded font-bold shrink-0">
+                        OCR FAILED
+                      </span>
+                    )}
+                    <a 
+                      href={doc.url} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="p-1.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded text-gray-400 transition cursor-pointer"
                     >
-                      <Eye size={12} />
+                      <Download size={12} />
+                    </a>
+                    <button 
+                      onClick={() => handleDelete(doc._id)}
+                      className="p-1.5 bg-white/5 border border-white/10 hover:bg-red-500/30 hover:bg-red-950/20 hover:text-red-400 rounded text-gray-500 transition cursor-pointer outline-none"
+                    >
+                      <Trash2 size={12} />
                     </button>
-                  ) : doc.ocrStatus === 'Pending' ? (
-                    <span className="text-[8px] bg-amber-500/10 text-amber-500 px-2 py-1 rounded font-bold border border-amber-500/20 animate-pulse shrink-0">
-                      OCR PENDING
-                    </span>
-                  ) : (
-                    <span className="text-[8px] bg-red-500/10 text-red-500 px-2 py-1 rounded font-bold shrink-0">
-                      OCR FAILED
-                    </span>
-                  )}
-                  <a 
-                    href={doc.url} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="p-1.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded text-gray-400 transition cursor-pointer"
-                  >
-                    <Download size={12} />
-                  </a>
-                  <button 
-                    onClick={() => handleDelete(doc._id)}
-                    className="p-1.5 bg-white/5 border border-white/10 hover:border-red-500/30 hover:bg-red-950/20 hover:text-red-400 rounded text-gray-500 transition cursor-pointer"
-                  >
-                    <Trash2 size={12} />
-                  </button>
+                  </div>
                 </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-center text-xs text-gray-500 py-12">No files found matching catalog categories.</p>
+              )}
+            />
           )}
         </div>
 
         {/* OCR preview side pane */}
-        <div className="liquid-glass rounded-xl p-5 flex flex-col h-[65vh] justify-between">
+        <div className="liquid-glass rounded-xl p-5 flex flex-col h-[65vh] justify-between border border-white/5 bg-slate-950/40">
           {viewOcrDoc ? (
             <div className="space-y-4 h-full flex flex-col justify-between overflow-hidden">
               <div>
@@ -228,7 +237,7 @@ export const DocumentHub: React.FC = () => {
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="fixed inset-0" onClick={() => setShowUploadModal(false)} />
-          <form onSubmit={handleUpload} className="w-full max-w-sm liquid-glass p-6 rounded-xl relative z-10 space-y-4">
+          <form onSubmit={handleUpload} className="w-full max-w-sm liquid-glass p-6 rounded-xl relative z-10 space-y-4 border border-white/10 bg-slate-950">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">File Filing Upload</h3>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Document Display Title</label>
@@ -288,4 +297,5 @@ export const DocumentHub: React.FC = () => {
     </div>
   );
 };
+
 export default DocumentHub;

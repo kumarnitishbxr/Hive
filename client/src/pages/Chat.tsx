@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Phone, 
@@ -12,16 +13,14 @@ import {
   Calendar, 
   Mail, 
   Briefcase, 
-  Activity,
-  ChevronRight
+  ArrowRight
 } from 'lucide-react';
 
 import { RootState } from '../store';
 import { useSocket } from '../hooks/useSocket';
 import { chatService } from '../services/api';
+import { useMessages, useSendMessage, useConversations } from '../hooks/useReactQueries';
 import { 
-  setMessagesForConversation, 
-  addMessageToConversation, 
   MessageType, 
   ConversationType 
 } from '../store/slices/chatSlice';
@@ -29,9 +28,12 @@ import {
 import ChatList from '../components/layout/Chat/ChatList';
 import MessageBubble from '../components/layout/Chat/MessageBubble';
 import MessageInput from '../components/layout/Chat/MessageInput';
+import VirtualList from '../components/VirtualList';
+import { Skeleton } from '../components/Skeleton';
+import ErrorState from '../components/ErrorState';
 
 export const ChatPage: React.FC = () => {
-  const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const auth = useSelector((state: RootState) => state.auth);
   const chatState = useSelector((state: RootState) => state.chat);
   const userState = useSelector((state: RootState) => state.user);
@@ -50,41 +52,33 @@ export const ChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
+  const { data: conversations = [] } = useConversations();
+
+  // Use React Query for loading messages
+  const { 
+    data: activeMessages = [], 
+    isLoading: isMessagesLoading, 
+    isError: isMessagesError, 
+    refetch: refetchMessages 
+  } = useMessages(chatState.activeConversationId);
+
+  const sendMessageMutation = useSendMessage();
+
   // Fetch messages when active conversation changes
   useEffect(() => {
     if (chatState.activeConversationId) {
-      const loadMessages = async () => {
-        try {
-          const res = await chatService.getMessages(chatState.activeConversationId!);
-          dispatch(setMessagesForConversation({ 
-            conversationId: chatState.activeConversationId!, 
-            messages: res.data 
-          }));
-          
-          // Emit message-seen receipt
-          sendSeen(chatState.activeConversationId!);
-        } catch (err) {
-          console.error('Failed to load messages:', err);
-        }
-      };
-
-      loadMessages();
-
-      // Find conversation details
-      const convoObj = chatState.conversations.find(c => c._id === chatState.activeConversationId);
+      sendSeen(chatState.activeConversationId);
+      // Find conversation details from react-query cache instead of unpopulated redux slice
+      const convoObj = conversations.find((c: any) => c._id === chatState.activeConversationId);
       if (convoObj) {
         setActiveConvo(convoObj);
       }
     } else {
       setActiveConvo(null);
     }
-  }, [chatState.activeConversationId, chatState.conversations, dispatch]);
+  }, [chatState.activeConversationId, conversations]);
 
   // Scroll to bottom on new message
-  const activeMessages = chatState.activeConversationId 
-    ? chatState.messages[chatState.activeConversationId] || [] 
-    : [];
-
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeMessages]);
@@ -103,10 +97,7 @@ export const ChatPage: React.FC = () => {
         workspaceId
       };
 
-      const res = await chatService.sendMessage(payload);
-      
-      // Add message locally to store
-      dispatch(addMessageToConversation(res.data));
+      await sendMessageMutation.mutateAsync(payload);
       setReplyingTo(null);
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -115,14 +106,8 @@ export const ChatPage: React.FC = () => {
 
   const handleDeleteMessage = async (messageId: string) => {
     try {
-      const res = await chatService.deleteMessage(messageId);
-      // Let socket broadcast or update locally
-      // We can just query message details or reload
-      const loadedMsgs = await chatService.getMessages(chatState.activeConversationId!);
-      dispatch(setMessagesForConversation({
-        conversationId: chatState.activeConversationId!,
-        messages: loadedMsgs.data
-      }));
+      await chatService.deleteMessage(messageId);
+      queryClient.invalidateQueries({ queryKey: ['messages', chatState.activeConversationId] });
     } catch (err) {
       console.error('Failed to delete message:', err);
     }
@@ -144,14 +129,14 @@ export const ChatPage: React.FC = () => {
   const isRecipientOnline = recipient ? userState.onlineUserIds.includes(recipient._id) : false;
 
   // Filter messages by search keyword if toggled
-  const filteredMessages = activeMessages.filter(msg => {
+  const filteredMessages = activeMessages.filter((msg: any) => {
     if (!messageSearchQuery) return true;
     return msg.message.toLowerCase().includes(messageSearchQuery.toLowerCase());
   });
 
   // Extract shared files from messages list
-  const sharedFiles = activeMessages.flatMap(msg => 
-    (msg.attachments || []).map(a => ({
+  const sharedFiles = activeMessages.flatMap((msg: any) => 
+    (msg.attachments || []).map((a: any) => ({
       name: a.name,
       url: a.url,
       type: a.fileType,
@@ -184,7 +169,7 @@ export const ChatPage: React.FC = () => {
                   <img src={recipient.avatarUrl} alt={recipient.fullName} className="w-9 h-9 rounded-full object-cover border border-white/10" />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center font-bold text-sm text-indigo-400 uppercase">
-                    {recipient?.fullName.charAt(0) || 'C'}
+                    {recipient?.fullName?.charAt(0) || 'C'}
                   </div>
                 )}
 
@@ -259,41 +244,60 @@ export const ChatPage: React.FC = () => {
             )}
             
             {/* Chat Body (Message Scrolling Canvas) */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-0" ref={messagesContainerRef}>
-              {filteredMessages.length > 0 ? (
-                filteredMessages.map((msg, idx) => {
-                  const getSenderId = (m: MessageType) => typeof m.senderId === 'object' ? m.senderId._id : m.senderId;
-                  const prevMsg = idx > 0 ? filteredMessages[idx - 1] : null;
-                  const nextMsg = idx < filteredMessages.length - 1 ? filteredMessages[idx + 1] : null;
-
-                  const isFirstInGroup = !prevMsg || getSenderId(prevMsg) !== getSenderId(msg);
-                  const isLastInGroup = !nextMsg || getSenderId(nextMsg) !== getSenderId(msg);
-
-                  return (
-                    <MessageBubble
-                      key={msg._id}
-                      message={msg}
-                      currentUserId={auth.user?.id || ''}
-                      onReply={setReplyingTo}
-                      onDelete={handleDeleteMessage}
-                      isFirstInGroup={isFirstInGroup}
-                      isLastInGroup={isLastInGroup}
-                    />
-                  );
-                })
+            <div className="grow flex flex-col min-h-0 bg-slate-950/20" ref={messagesContainerRef}>
+              {isMessagesLoading ? (
+                <div className="flex-1 flex flex-col justify-end p-5 space-y-4">
+                  <Skeleton className="h-12 w-2/3 self-start rounded-xl" />
+                  <Skeleton className="h-10 w-1/2 self-end rounded-xl" />
+                  <Skeleton className="h-16 w-3/4 self-start rounded-xl" />
+                </div>
+              ) : isMessagesError ? (
+                <div className="flex-1 flex items-center justify-center p-6">
+                  <ErrorState onRetry={refetchMessages} message="Failed to load thread message history." />
+                </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center p-6">
-                  <p className="text-xs text-gray-500">
-                    {messageSearchQuery ? "No matching messages found in history." : "This is the start of your conversation. Send a message to begin!"}
-                  </p>
+                <div className="flex-1 overflow-hidden">
+                  <VirtualList
+                    items={filteredMessages}
+                    estimateSize={85}
+                    heightClass="h-full"
+                    emptyComponent={
+                      <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                        <p className="text-xs text-gray-500">
+                          {messageSearchQuery ? "No matching messages found in history." : "This is the start of your conversation. Send a message to begin!"}
+                        </p>
+                      </div>
+                    }
+                    renderItem={(msg: any, idx: number) => {
+                      const getSenderId = (m: MessageType) => typeof m.senderId === 'object' ? m.senderId._id : m.senderId;
+                      const prevMsg = idx > 0 ? filteredMessages[idx - 1] : null;
+                      const nextMsg = idx < filteredMessages.length - 1 ? filteredMessages[idx + 1] : null;
+
+                      const isFirstInGroup = !prevMsg || getSenderId(prevMsg) !== getSenderId(msg);
+                      const isLastInGroup = !nextMsg || getSenderId(nextMsg) !== getSenderId(msg);
+
+                      return (
+                        <div className="px-5 py-0.5">
+                          <MessageBubble
+                            message={msg}
+                            currentUserId={auth.user?.id || ''}
+                            onReply={setReplyingTo}
+                            onDelete={handleDeleteMessage}
+                            isFirstInGroup={isFirstInGroup}
+                            isLastInGroup={isLastInGroup}
+                          />
+                        </div>
+                      );
+                    }}
+                  />
                 </div>
               )}
               
               {/* Dynamic typing indicators in-flow (WhatsApp Style Bubble) */}
-              {chatState.typingStatus[activeConvo._id] && 
+              {activeConvo && chatState.typingStatus[activeConvo._id] && 
                Object.values(chatState.typingStatus[activeConvo._id]).some(t => t.isTyping) && (
-                <div className="flex items-start gap-3 w-full px-5 mt-2 animate-pulse">
-                  <div className="w-8 h-8 flex-shrink-0" />
+                <div className="flex items-start gap-3 w-full px-5 mt-2 animate-pulse mb-3">
+                  <div className="w-8 h-8 shrink-0" />
                   <div className="bg-[#1B2236] px-4 py-2.5 rounded-[18px] flex items-center gap-1.5 self-start">
                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -348,9 +352,9 @@ export const ChatPage: React.FC = () => {
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: 320, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            className="w-80 border-l border-white/5 bg-slate-950/80 backdrop-blur-md flex flex-col h-full z-15 overflow-hidden flex-shrink-0"
+            className="w-80 border-l border-white/5 bg-slate-950/80 backdrop-blur-md flex flex-col h-full z-15 overflow-hidden shrink-0"
           >
-            <div className="p-4 border-b border-white/5 flex items-center justify-between flex-shrink-0 sticky top-0 bg-slate-950/80 backdrop-blur-md z-10">
+            <div className="p-4 border-b border-white/5 flex items-center justify-between shrink-0 sticky top-0 bg-slate-950/80 backdrop-blur-md z-10">
               <span className="text-[10px] text-gray-500 font-extrabold tracking-wider uppercase">Conversation Info</span>
               <button 
                 onClick={() => setShowRightPanel(false)}
@@ -372,7 +376,7 @@ export const ChatPage: React.FC = () => {
                   <img src={recipient.avatarUrl} alt={recipient.fullName} className="w-16 h-16 rounded-full object-cover border border-white/10 shadow-xl" />
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center font-bold text-xl text-indigo-400 uppercase shadow-xl">
-                    {recipient?.fullName.charAt(0) || 'C'}
+                    {recipient?.fullName?.charAt(0) || 'C'}
                   </div>
                 )}
 
@@ -393,11 +397,11 @@ export const ChatPage: React.FC = () => {
                   
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-xs text-gray-400">
-                      <Mail size={13} className="text-gray-500 flex-shrink-0" />
+                      <Mail size={13} className="text-gray-500 shrink-0" />
                       <span className="truncate">{recipient.email}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-400">
-                      <Briefcase size={13} className="text-gray-500 flex-shrink-0" />
+                      <Briefcase size={13} className="text-gray-500 shrink-0" />
                       <span>{recipient.role}</span>
                     </div>
                   </div>
@@ -500,7 +504,6 @@ export const ChatPage: React.FC = () => {
 
       {/* Global listener hook to toggle DM Modal */}
       <CustomChatModalTrigger showModal={() => {
-        // Find element that handles click or trigger in ChatList
         const btn = document.querySelector('button[title="Start direct chat"]') as HTMLButtonElement;
         if (btn) btn.click();
       }} />

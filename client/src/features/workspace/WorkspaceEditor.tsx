@@ -1,75 +1,72 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
-import { workspaceService } from '../../services/api';
-import { File, Folder, Plus, Save, Trash2, ChevronRight, FileText } from 'lucide-react';
+import { 
+  useWorkspaces, 
+  useWorkspacePages, 
+  useWorkspacePage, 
+  useCreatePage, 
+  useUpdatePage, 
+  useDeletePage 
+} from '../../hooks/useReactQueries';
+import { File, Folder, Plus, Save, Trash2, FileText } from 'lucide-react';
+import { Skeleton } from '../../components/Skeleton';
+import ErrorState from '../../components/ErrorState';
 
 export const WorkspaceEditor: React.FC = () => {
   const auth = useSelector((state: RootState) => state.auth);
-  const [workspaces, setWorkspaces] = useState<any[]>([]);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
   
-  const [pages, setPages] = useState<any[]>([]);
-  const [activePage, setActivePage] = useState<any>(null);
+  // Workspace list (Query)
+  const { data: workspaces = [], isLoading: isWorkspacesLoading } = useWorkspaces();
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (workspaces.length > 0 && !activeWorkspaceId) {
+      setActiveWorkspaceId(workspaces[0]._id);
+    }
+  }, [workspaces, activeWorkspaceId]);
+
+  // Subpages inside workspace (Query)
+  const { data: pages = [], isLoading: isPagesLoading, isError: isPagesError, refetch: refetchPages } = useWorkspacePages(activeWorkspaceId);
+  const [activePageId, setActivePageId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (pages.length > 0 && !activePageId) {
+      setActivePageId(pages[0]._id);
+    }
+  }, [pages, activePageId]);
+
+  // Active page details (Query)
+  const { data: activePage, isLoading: isActivePageLoading } = useWorkspacePage(activePageId);
 
   // Editor Inputs
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+
+  // Sync inputs with query result
+  useEffect(() => {
+    if (activePage) {
+      setTitle(activePage.title);
+      setContent(activePage.content || '');
+    }
+  }, [activePage]);
 
   // Add Page triggers
   const [showAddModal, setShowAddModal] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState('');
   const [isFolder, setIsFolder] = useState(false);
 
-  useEffect(() => {
-    fetchWorkspaces();
-  }, []);
-
-  const fetchWorkspaces = async () => {
-    try {
-      const res = await workspaceService.getWorkspaces();
-      setWorkspaces(res.data.workspaces);
-      if (res.data.workspaces.length > 0) {
-        setActiveWorkspaceId(res.data.workspaces[0]._id);
-        fetchPages(res.data.workspaces[0]._id);
-      }
-    } catch (err) {
-      console.error('Failed to retrieve workspaces list', err);
-    }
-  };
-
-  const fetchPages = async (wId: string) => {
-    try {
-      const res = await workspaceService.getPages(wId);
-      setPages(res.data.pages);
-      // Auto select first page
-      if (res.data.pages.length > 0) {
-        loadPageDetails(res.data.pages[0]._id);
-      } else {
-        setActivePage(null);
-      }
-    } catch (err) {
-      console.error('Failed to load subpages', err);
-    }
-  };
-
-  const loadPageDetails = async (pId: string) => {
-    try {
-      const res = await workspaceService.getPage(pId);
-      setActivePage(res.data.page);
-      setTitle(res.data.page.title);
-      setContent(res.data.page.content);
-    } catch (err) {
-      console.error('Failed to load page content details', err);
-    }
-  };
+  // Mutations
+  const createPageMutation = useCreatePage();
+  const updatePageMutation = useUpdatePage();
+  const deletePageMutation = useDeletePage();
 
   const handleCreatePage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeWorkspaceId || !newPageTitle) return;
 
     try {
-      const res = await workspaceService.createPage({
+      const res = await createPageMutation.mutateAsync({
         workspaceId: activeWorkspaceId,
         title: newPageTitle,
         isFolder,
@@ -77,9 +74,8 @@ export const WorkspaceEditor: React.FC = () => {
       });
       setShowAddModal(false);
       setNewPageTitle('');
-      fetchPages(activeWorkspaceId);
-      if (!isFolder) {
-        loadPageDetails(res.data.page._id);
+      if (!isFolder && res.data?.page?._id) {
+        setActivePageId(res.data.page._id);
       }
     } catch (err) {
       console.error('Failed to create page', err);
@@ -87,30 +83,41 @@ export const WorkspaceEditor: React.FC = () => {
   };
 
   const handleUpdatePage = async () => {
-    if (!activePage) return;
+    if (!activePageId) return;
     try {
-      const res = await workspaceService.updatePage(activePage._id, { title, content });
-      setActivePage(res.data.page);
-      // Reload pages tree
-      if (activeWorkspaceId) fetchPages(activeWorkspaceId);
+      await updatePageMutation.mutateAsync({
+        id: activePageId,
+        payload: { title, content }
+      });
     } catch (err) {
       console.error('Failed to save page modifications', err);
     }
   };
 
   const handleDeletePage = async (pId: string) => {
+    if (!activeWorkspaceId) return;
     try {
-      await workspaceService.deletePage(pId);
-      if (activeWorkspaceId) fetchPages(activeWorkspaceId);
+      await deletePageMutation.mutateAsync({ id: pId, workspaceId: activeWorkspaceId });
+      if (activePageId === pId) {
+        setActivePageId(null);
+      }
     } catch (err) {
       console.error('Failed to delete page', err);
     }
   };
 
+  if (isPagesError) {
+    return (
+      <div className="flex items-center justify-center h-[70vh]">
+        <ErrorState onRetry={refetchPages} message="Failed to load workspace files and directories." />
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[80vh]">
       {/* Subpage Nav Drawer */}
-      <div className="liquid-glass rounded-xl p-4 flex flex-col justify-between">
+      <div className="liquid-glass rounded-xl p-4 flex flex-col justify-between border border-white/5 bg-slate-950/40">
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b border-white/5 pb-2">
             <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">WORKSPACE PAGES</span>
@@ -123,16 +130,22 @@ export const WorkspaceEditor: React.FC = () => {
           </div>
 
           <div className="space-y-1 overflow-y-auto max-h-[60vh]">
-            {pages.length > 0 ? (
-              pages.map((p) => (
+            {isPagesLoading ? (
+              <div className="space-y-2 p-2">
+                <Skeleton className="h-6 w-full" />
+                <Skeleton className="h-6 w-full" />
+                <Skeleton className="h-6 w-full" />
+              </div>
+            ) : pages.length > 0 ? (
+              pages.map((p: any) => (
                 <div 
                   key={p._id}
                   className={`group flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-semibold cursor-pointer transition ${
-                    activePage?._id === p._id 
+                    activePageId === p._id 
                       ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' 
                       : 'text-gray-400 border border-transparent hover:bg-white/2 hover:text-gray-200'
                   }`}
-                  onClick={() => loadPageDetails(p._id)}
+                  onClick={() => setActivePageId(p._id)}
                 >
                   <div className="flex items-center gap-2 truncate">
                     {p.isFolder ? <Folder size={14} className="text-amber-400 shrink-0" /> : <File size={14} className="text-gray-400 shrink-0" />}
@@ -157,14 +170,22 @@ export const WorkspaceEditor: React.FC = () => {
       </div>
 
       {/* Editor & Wiki Previewer */}
-      <div className="md:col-span-3 liquid-glass rounded-xl p-6 flex flex-col h-full overflow-hidden">
-        {activePage ? (
+      <div className="md:col-span-3 liquid-glass rounded-xl p-6 flex flex-col h-full overflow-hidden border border-white/5 bg-slate-950/40">
+        {isActivePageLoading ? (
+          <div className="space-y-4 h-full">
+            <Skeleton className="h-8 w-1/3" />
+            <div className="grid grid-cols-2 gap-4 flex-1 h-[50vh]">
+              <Skeleton className="h-full w-full" />
+              <Skeleton className="h-full w-full" />
+            </div>
+          </div>
+        ) : activePageId && activePage ? (
           <div className="flex flex-col h-full space-y-4">
             {/* Action Bar */}
             <div className="flex justify-between items-center border-b border-white/5 pb-3">
               <input
                 type="text"
-                className="bg-transparent text-lg font-bold text-white border-none outline-none focus:ring-0 w-3/4"
+                className="bg-transparent text-lg font-bold text-white border-none outline-none focus:ring-0 w-3/4 font-sans"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
@@ -180,7 +201,7 @@ export const WorkspaceEditor: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-hidden h-[50vh]">
               {/* Write Side */}
               <div className="flex flex-col h-full">
-                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-2">MARKDOWN CONTENT</span>
+                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-2 font-sans">MARKDOWN CONTENT</span>
                 <textarea
                   className="w-full glass-input text-xs font-mono flex-1 resize-none h-[40vh]"
                   value={content}
@@ -191,20 +212,19 @@ export const WorkspaceEditor: React.FC = () => {
 
               {/* Render Preview Side */}
               <div className="flex flex-col h-full border-l border-white/5 pl-4">
-                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-2">RENDER PREVIEW</span>
+                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-2 font-sans">RENDER PREVIEW</span>
                 <div className="flex-1 bg-white/2 border border-white/5 rounded-lg p-4 text-xs overflow-y-auto prose prose-invert h-[40vh] leading-relaxed">
-                  {/* Basic Render helper to parse headings, bold, bullet points */}
                   {content.split('\n').map((line, idx) => {
                     if (line.startsWith('# ')) {
-                      return <h1 key={idx} className="text-base font-extrabold text-white mt-3 mb-2">{line.replace('# ', '')}</h1>;
+                      return <h1 key={idx} className="text-base font-extrabold text-white mt-3 mb-2 font-sans">{line.replace('# ', '')}</h1>;
                     }
                     if (line.startsWith('## ')) {
-                      return <h2 key={idx} className="text-sm font-bold text-indigo-400 mt-2 mb-1.5">{line.replace('## ', '')}</h2>;
+                      return <h2 key={idx} className="text-sm font-bold text-indigo-400 mt-2 mb-1.5 font-sans">{line.replace('## ', '')}</h2>;
                     }
                     if (line.startsWith('- ')) {
-                      return <li key={idx} className="ml-3 list-disc text-gray-300">{line.replace('- ', '')}</li>;
+                      return <li key={idx} className="ml-3 list-disc text-gray-300 font-sans">{line.replace('- ', '')}</li>;
                     }
-                    return <p key={idx} className="text-gray-400 mt-1">{line}</p>;
+                    return <p key={idx} className="text-gray-400 mt-1 font-sans">{line}</p>;
                   })}
                 </div>
               </div>
@@ -223,7 +243,7 @@ export const WorkspaceEditor: React.FC = () => {
       {showAddModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="fixed inset-0" onClick={() => setShowAddModal(false)} />
-          <form onSubmit={handleCreatePage} className="w-full max-w-sm liquid-glass p-6 rounded-xl relative z-10 space-y-4">
+          <form onSubmit={handleCreatePage} className="w-full max-w-sm liquid-glass p-6 rounded-xl relative z-10 space-y-4 border border-white/10 bg-slate-950">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">Create Wiki Entry</h3>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Title</label>
@@ -279,4 +299,5 @@ export const WorkspaceEditor: React.FC = () => {
     </div>
   );
 };
+
 export default WorkspaceEditor;

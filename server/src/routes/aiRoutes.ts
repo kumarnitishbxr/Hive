@@ -1,10 +1,27 @@
 import { Router } from 'express';
-import { aiChatStream, getHealthScore } from '../controllers/aiController';
+import { 
+  aiChatStream, 
+  getHealthScore, 
+  summarizeWorkspace, 
+  generateSprintSuggestion, 
+  generateInvestorPitch, 
+  searchWorkspace, 
+  getProactiveRecommendations 
+} from '../controllers/aiController';
 import { authenticateJWT, tenantIsolated } from '../middleware/auth';
 
 const router = Router();
 
-router.post('/chat', authenticateJWT, tenantIsolated, aiChatStream);
-router.get('/health', authenticateJWT, tenantIsolated, getHealthScore);
+// Apply auth middlewares globally
+router.use(authenticateJWT);
+router.use(tenantIsolated);
+
+router.post('/chat', aiChatStream);
+router.get('/health', getHealthScore);
+router.post('/summarize', summarizeWorkspace);
+router.post('/sprint', generateSprintSuggestion);
+router.post('/pitch', generateInvestorPitch);
+router.post('/search', searchWorkspace);
+router.post('/recommendations', getProactiveRecommendations);
 
 export default router;

@@ -118,8 +118,12 @@ export const documentService = {
 // AI Co-Founder Dashboard API
 export const aiService = {
   getHealthReport: () => api.get('/ai/health'),
-  // Standard non-stream chat trigger
-  chat: (payload: { prompt: string; topic?: string }) => api.post('/ai/chat', payload)
+  chat: (payload: { prompt: string; topic?: string; conversationId?: string }) => api.post('/ai/chat', payload),
+  summarizeWorkspace: () => api.post('/ai/summarize'),
+  generateSprint: () => api.post('/ai/sprint'),
+  generatePitch: () => api.post('/ai/pitch'),
+  searchWorkspace: (query: string) => api.post('/ai/search', { query }),
+  getRecommendations: () => api.post('/ai/recommendations')
 };
 
 // Workspace Chat & Communications API
@@ -184,6 +188,24 @@ export const milestoneService = {
     api.post('/milestones', payload),
   updateMilestone: (id: string, payload: any) => api.patch(`/milestones/${id}`, payload),
   deleteMilestone: (id: string) => api.delete(`/milestones/${id}`)
+};
+
+// Enterprise Task Management Service
+export const taskService = {
+  createTask: (payload: any) => api.post('/tasks', payload),
+  getTasks: (query?: { workspaceId?: string; projectId?: string; sprintId?: string; assigneeId?: string; status?: string; search?: string; page?: number; limit?: number }) => {
+    const params = new URLSearchParams(query as any).toString();
+    return api.get(`/tasks?${params}`);
+  },
+  getTaskById: (id: string) => api.get(`/tasks/${id}`),
+  updateTask: (id: string, payload: any) => api.patch(`/tasks/${id}`, payload),
+  deleteTask: (id: string) => api.delete(`/tasks/${id}`),
+  updateStatus: (id: string, payload: { status: string }) => api.patch(`/tasks/${id}/status`, payload),
+  approveTask: (id: string) => api.patch(`/tasks/${id}/approve`),
+  rejectTask: (id: string, payload: { comments: string }) => api.patch(`/tasks/${id}/reject`, payload),
+  addComment: (id: string, payload: { content: string; replyToId?: string; attachments?: string[] }) => api.post(`/tasks/${id}/comment`, payload),
+  addAttachment: (id: string, payload: { name: string; url: string }) => api.post(`/tasks/${id}/attachment`, payload),
+  toggleChecklist: (id: string, payload: { checklistItemId: string; isCompleted: boolean }) => api.post(`/tasks/${id}/checklist`, payload)
 };
 
 export default api;

@@ -3,7 +3,7 @@ dotenv.config();
 
 export const config = {
   port: Number(process.env.PORT),
-  mongodbUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/startupops',
+  mongodbUri: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/startupops',
   jwtSecret: process.env.JWT_SECRET || 'startupops_super_secret_jwt_key_99',
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'startupops_super_refresh_jwt_key_99',
   jwtExpiry: process.env.JWT_EXPIRY || '24h',

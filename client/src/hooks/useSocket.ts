@@ -1,20 +1,17 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { io, Socket } from 'socket.io-client';
+import { useQueryClient } from '@tanstack/react-query';
 import { RootState } from '../store';
 import { setConnected } from '../store/slices/socketSlice';
-import { 
-  addMessageToConversation, 
-  updateConversationLastMessage, 
-  setTypingIndicator, 
-  markMessagesAsSeenLocally 
-} from '../store/slices/chatSlice';
+import { setTypingIndicator } from '../store/slices/chatSlice';
 import { addNotification } from '../store/slices/notificationSlice';
 
 let socket: Socket | null = null;
 
 export const useSocket = () => {
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const auth = useSelector((state: RootState) => state.auth);
   const activeConversationId = useSelector((state: RootState) => state.chat.activeConversationId);
   const workspaceId = useSelector((state: RootState) => state.workspace.activeWorkspaceId);
@@ -55,12 +52,15 @@ export const useSocket = () => {
       });
 
       socket.on('receive-message', (message: any) => {
-        dispatch(addMessageToConversation(message));
-        dispatch(updateConversationLastMessage({
-          conversationId: message.conversationId,
-          lastMessage: message.message,
-          lastMessageTime: message.createdAt
-        }));
+        // Update messages query cache
+        queryClient.setQueryData(['messages', message.conversationId], (oldMessages: any) => {
+          if (!oldMessages) return [message];
+          if (oldMessages.some((m: any) => m._id === message._id)) return oldMessages;
+          return [...oldMessages, message];
+        });
+
+        // Invalidate conversations list so it shows updated lastMessage
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
       });
 
       socket.on('typing', (data: any) => {
@@ -68,7 +68,7 @@ export const useSocket = () => {
       });
 
       socket.on('message-seen', (data: any) => {
-        dispatch(markMessagesAsSeenLocally(data));
+        queryClient.invalidateQueries({ queryKey: ['messages', data.conversationId] });
       });
 
       socket.on('notification', (data: any) => {
@@ -79,7 +79,7 @@ export const useSocket = () => {
     return () => {
       // Maintain persistent connection across component transitions
     };
-  }, [auth.isAuthenticated, auth.user, workspaceId, dispatch]);
+  }, [auth.isAuthenticated, auth.user, workspaceId, dispatch, queryClient]);
 
   // Join the active conversation's websocket room
   useEffect(() => {

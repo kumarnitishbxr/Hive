@@ -9,6 +9,7 @@ import teamReducer from './slices/teamSlice';
 import mentorReducer from './slices/mentorSlice';
 import invitationReducer from './slices/invitationSlice';
 import taskReducer from './slices/taskSlice';
+import aiCopilotReducer from '../features/ai/redux/aiSlice';
 
 export const store = configureStore({
   reducer: {
@@ -21,7 +22,8 @@ export const store = configureStore({
     team: teamReducer,
     mentor: mentorReducer,
     invitation: invitationReducer,
-    task: taskReducer
+    task: taskReducer,
+    aiCopilot: aiCopilotReducer
   }
 });
 

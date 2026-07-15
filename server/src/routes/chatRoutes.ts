@@ -1,5 +1,13 @@
 import { Router } from 'express';
-import { sendChat, getConversations, getMessages, markSeen, deleteMessage, getChatMembers } from '../controllers/chatController';
+import { 
+  sendChat, 
+  getConversations, 
+  getMessages, 
+  markSeen, 
+  deleteMessage, 
+  getChatMembers, 
+  updateGroupConversation 
+} from '../controllers/chatController';
 import { authenticateJWT, tenantIsolated } from '../middleware/auth';
 
 const router = Router();
@@ -10,6 +18,7 @@ router.get('/messages/:conversationId', authenticateJWT, tenantIsolated, getMess
 router.get('/members', authenticateJWT, tenantIsolated, getChatMembers);
 router.patch('/seen', authenticateJWT, tenantIsolated, markSeen);
 router.delete('/message', authenticateJWT, tenantIsolated, deleteMessage);
+router.patch('/conversations/:conversationId/update-group', authenticateJWT, tenantIsolated, updateGroupConversation);
 
 
 export default router;
