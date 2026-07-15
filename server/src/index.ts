@@ -19,6 +19,7 @@ import chatRoutes from './routes/chatRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import taskRoutes from './routes/taskRoutes';
 import teamRoutes from './routes/teamRoutes';
+import milestoneRoutes from './routes/milestoneRoutes';
 
 dotenv.config();
 
@@ -64,6 +65,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/notification', notificationRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/team', teamRoutes);
+app.use('/api/milestones', milestoneRoutes);
 
 // Simple healthcheck
 app.get('/health', (req, res) => {

@@ -172,13 +172,13 @@ export const teamManagementService = {
 export const workforceTaskService = {
   getMyTasks: () => api.get('/tasks/my'),
   updateStatus: (payload: { taskId: string; status: string; comment?: string; attachment?: { name: string; url: string } }) =>
-    api.patch('/tasks/status', payload),
+    api.patch(`/tasks/${payload.taskId}/status`, { status: payload.status, comment: payload.comment, attachment: payload.attachment }),
   completeTask: (payload: { taskId: string; comment?: string; attachment?: { name: string; url: string } }) =>
-    api.patch('/tasks/complete', payload),
+    api.patch(`/tasks/${payload.taskId}/status`, { status: 'Completed', comment: payload.comment, attachment: payload.attachment }),
   approveTask: (payload: { taskId: string; feedback?: string; actualHours?: number }) =>
-    api.patch('/tasks/approve', payload),
+    api.patch(`/tasks/${payload.taskId}/approve`, { feedback: payload.feedback, actualHours: payload.actualHours }),
   rejectTask: (payload: { taskId: string; feedback: string }) =>
-    api.patch('/tasks/reject', payload)
+    api.patch(`/tasks/${payload.taskId}/reject`, { comments: payload.feedback })
 };
 
 // Milestones API
