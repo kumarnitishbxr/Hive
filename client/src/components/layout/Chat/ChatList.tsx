@@ -23,6 +23,7 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
   const auth = useSelector((state: RootState) => state.auth);
   const chatState = useSelector((state: RootState) => state.chat);
   const userState = useSelector((state: RootState) => state.user);
+  const workspaceId = useSelector((state: RootState) => state.workspace.activeWorkspaceId);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -34,8 +35,9 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [searchMemberQuery, setSearchMemberQuery] = useState('');
 
-  // Fetch conversations and startup members on mount
+  // Fetch conversations and startup members on mount or workspace change
   useEffect(() => {
+    if (!workspaceId) return;
     const loadConversationsAndMembers = async () => {
       try {
         const convoRes = await chatService.getConversations();
@@ -48,7 +50,7 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
       }
     };
     loadConversationsAndMembers();
-  }, [dispatch, auth.startupId]);
+  }, [dispatch, auth.startupId, workspaceId]);
 
   // Handle conversation select
   const handleSelectConvo = (convoId: string) => {
@@ -210,7 +212,7 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
   };
 
   return (
-    <div className="w-80 border-r border-white/5 bg-slate-950/90 flex flex-col h-full z-20">
+    <div className="w-80 border-r border-white/5 bg-slate-950/90 flex flex-col h-full overflow-hidden z-20">
       
       {/* Search Header */}
       <div className="p-4 border-b border-white/5 space-y-3">

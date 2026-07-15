@@ -14,7 +14,9 @@ import {
   Layers,
   UserCheck,
   MessageSquare,
-  Bell
+  Bell,
+  Users,
+  ListTodo
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -31,14 +33,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   const conversations = useSelector((state: RootState) => state.chat.conversations);
   const chatUnreadCount = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
   
+  const isFounder = auth.role === 'Founder' || auth.role === 'Co-Founder';
+  
   const navItems = [
-    { id: 'dashboard', label: 'Executive Dashboard', icon: LayoutDashboard },
+    ...(isFounder ? [{ id: 'dashboard', label: 'Executive Dashboard', icon: LayoutDashboard }] : []),
     { id: 'profile', label: 'Strategic Canvas', icon: Layers },
     { id: 'workspace', label: 'Notion Workspace', icon: BookOpen },
     { id: 'projects', label: 'Sprints & Kanban', icon: FolderGit2 },
-    { id: 'validation', label: 'Idea Validation', icon: TrendingUp },
-    { id: 'investors', label: 'Investor CRM', icon: Briefcase },
-    { id: 'documents', label: 'Document OCR', icon: FileText },
+    ...(isFounder ? [{ id: 'validation', label: 'Idea Validation', icon: TrendingUp }] : []),
+    ...(isFounder ? [{ id: 'investors', label: 'Investor CRM', icon: Briefcase }] : []),
+    ...(isFounder ? [{ id: 'documents', label: 'Document OCR', icon: FileText }] : []),
+    { id: 'team', label: 'Team Management', icon: Users },
+    { id: 'workforce-tasks', label: 'Workforce Tasks', icon: ListTodo },
     { id: 'chat', label: 'Workspace Chat', icon: MessageSquare, badge: chatUnreadCount },
     { id: 'notifications', label: 'Alerts & Notifications', icon: Bell, badge: notifUnreadCount },
     { id: 'ai', label: 'AI Co-Founder', icon: Sparkles }

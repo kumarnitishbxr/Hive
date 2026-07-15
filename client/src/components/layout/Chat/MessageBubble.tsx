@@ -6,24 +6,27 @@ import {
   CornerUpLeft, 
   Check, 
   CheckCheck, 
-  Smile, 
-  MoreHorizontal, 
   Star, 
   Pin 
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface MessageBubbleProps {
   message: MessageType;
   currentUserId: string;
   onReply: (message: MessageType) => void;
   onDelete: (messageId: string) => void;
+  isFirstInGroup?: boolean;
+  isLastInGroup?: boolean;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   currentUserId,
   onReply,
-  onDelete
+  onDelete,
+  isFirstInGroup = true,
+  isLastInGroup = true
 }) => {
   const [showOptions, setShowOptions] = useState(false);
   
@@ -64,58 +67,66 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   };
 
   return (
-    <div 
-      className={`group relative flex gap-3 px-4 py-2 hover:bg-white/2 transition duration-200 ${
-        isMe ? 'flex-row-reverse' : 'flex-row'
-      }`}
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18 }}
+      className={`group relative flex items-start gap-3 w-full px-5 ${
+        isMe ? 'justify-end' : 'justify-start'
+      } ${isFirstInGroup ? 'mt-3.5' : 'mt-1'}`}
       onMouseEnter={() => setShowOptions(true)}
       onMouseLeave={() => setShowOptions(false)}
     >
-      {/* Sender Avatar */}
-      <div className="flex-shrink-0">
-        {senderAvatar ? (
-          <img 
-            src={senderAvatar} 
-            alt={senderName} 
-            className="w-8 h-8 rounded-full object-cover border border-white/10"
-          />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center font-bold text-xs text-indigo-400 uppercase">
-            {senderName.charAt(0)}
+      {/* Col 1: Sender Avatar spacer (Only for incoming messages) */}
+      {!isMe && (
+        <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
+          {isFirstInGroup && (
+            senderAvatar ? (
+              <img 
+                src={senderAvatar} 
+                alt={senderName} 
+                className="w-8 h-8 rounded-full object-cover border border-white/10"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center font-bold text-xs text-indigo-400 uppercase">
+                {senderName.charAt(0)}
+              </div>
+            )
+          )}
+        </div>
+      )}
+
+      {/* Col 2: Message Content Block */}
+      <div className={`flex flex-col max-w-[65%] ${isMe ? 'items-end' : 'items-start'}`}>
+        {/* Name and Role Badge (Only for incoming messages, first in group) */}
+        {!isMe && isFirstInGroup && (
+          <div className="flex items-center gap-2 mb-1 pl-1">
+            <span className="text-xs font-bold text-gray-200">{senderName}</span>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${getRoleBadgeClass(senderRole)}`}>
+              {senderRole}
+            </span>
           </div>
         )}
-      </div>
-
-      {/* Message content panel */}
-      <div className={`flex flex-col max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}>
-        {/* Name and Role Badge */}
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-bold text-gray-200">{senderName}</span>
-          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${getRoleBadgeClass(senderRole)}`}>
-            {senderRole}
-          </span>
-          <span className="text-[9px] text-gray-500 font-semibold">{formatTime(message.createdAt)}</span>
-        </div>
 
         {/* Thread Reply Reference */}
         {message.replyTo && (
-          <div className="mb-1 text-[11px] bg-white/5 border-l-2 border-indigo-500 px-2.5 py-1 rounded text-gray-400 max-w-full truncate flex items-center gap-1.5">
-            <span className="font-semibold text-[10px] text-indigo-400">Replying to:</span>
+          <div className="mb-1 text-[10px] bg-white/5 border-l-2 border-indigo-500 px-2.5 py-1 rounded text-gray-400 max-w-full truncate flex items-center gap-1.5">
+            <span className="font-semibold text-[9px] text-indigo-400">Replying to:</span>
             <span className="italic">{message.replyTo.message}</span>
           </div>
         )}
 
         {/* Message bubble itself */}
         <div 
-          className={`px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed shadow-sm ${
+          className={`px-4 py-2.5 rounded-[18px] text-xs leading-relaxed shadow-sm flex flex-col relative ${
             message.deleted 
               ? 'bg-slate-900 border border-white/5 italic text-gray-500' 
               : isMe 
-                ? 'bg-indigo-600/90 text-white rounded-tr-none border border-indigo-500/30' 
-                : 'bg-white/5 text-gray-200 rounded-tl-none border border-white/8'
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white' 
+                : 'bg-[#1B2236] text-white'
           }`}
         >
-          {message.message}
+          <span className="break-words white-space-pre-wrap">{message.message}</span>
 
           {/* Render Attachments */}
           {message.attachments && message.attachments.length > 0 && (
@@ -156,34 +167,31 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               })}
             </div>
           )}
+
+          {/* Outgoing Metadata inside Bubble */}
+          {isMe && !message.deleted && (
+            <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-white/50 self-end">
+              <span>{formatTime(message.createdAt)}</span>
+              {message.seenBy.length > 1 ? (
+                <CheckCheck size={11} className="text-cyan-400" />
+              ) : (
+                <Check size={11} className="text-white/40" />
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Read receipts indicators (Seen Status / Delivered Status) */}
-        {isMe && !message.deleted && (
-          <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-500 font-semibold">
-            {message.seenBy.length > 1 ? (
-              <span className="flex items-center gap-1 text-emerald-400">
-                <CheckCheck size={12} /> Seen
-              </span>
-            ) : (
-              <span className="flex items-center gap-1">
-                <Check size={12} /> Sent
-              </span>
-            )}
-            {message.edited && <span className="text-[9px] text-gray-600 bg-white/5 px-1 py-0.5 rounded ml-1 font-bold">EDITED</span>}
-          </div>
-        )}
-
-        {!isMe && message.edited && !message.deleted && (
-          <span className="text-[9px] text-gray-600 bg-white/5 px-1 py-0.5 rounded mt-1 font-bold">EDITED</span>
+        {/* Incoming Metadata below Bubble */}
+        {!isMe && !message.deleted && (
+          <span className="text-[9px] text-gray-500 mt-0.5 ml-1">{formatTime(message.createdAt)}</span>
         )}
       </div>
 
       {/* Hover Action Options Toolbar */}
       {showOptions && !message.deleted && (
         <div 
-          className={`absolute top-2 z-10 flex items-center bg-slate-900 border border-white/10 rounded-lg p-1 shadow-xl ${
-            isMe ? 'left-4' : 'right-4'
+          className={`absolute top-1/2 -translate-y-1/2 z-10 flex items-center bg-slate-900 border border-white/10 rounded-lg p-0.5 shadow-xl ${
+            isMe ? 'left-5' : 'right-5'
           }`}
         >
           <button 
@@ -191,21 +199,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             title="Reply"
             className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-indigo-400 rounded transition cursor-pointer"
           >
-            <CornerUpLeft size={13} />
+            <CornerUpLeft size={12} />
           </button>
           
           <button 
             title="Star message"
             className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-amber-400 rounded transition cursor-pointer"
           >
-            <Star size={13} />
+            <Star size={12} />
           </button>
 
           <button 
             title="Pin message"
             className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-emerald-400 rounded transition cursor-pointer"
           >
-            <Pin size={13} />
+            <Pin size={12} />
           </button>
 
           {isMe && (
@@ -214,12 +222,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               title="Delete message"
               className="p-1.5 hover:bg-red-950/30 text-gray-400 hover:text-red-400 rounded transition cursor-pointer"
             >
-              <Trash2 size={13} />
+              <Trash2 size={12} />
             </button>
           )}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

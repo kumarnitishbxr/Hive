@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { projectService, startupService, validationService } from '../../services/api';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
+import { projectService, startupService, validationService, milestoneService } from '../../services/api';
 import { Plus, CheckSquare, Calendar, AlertTriangle, Play, HelpCircle, CheckCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const ProjectKanban: React.FC = () => {
+  const auth = useSelector((state: RootState) => state.auth);
+  const isFounder = auth.role === 'Founder' || auth.role === 'Co-Founder';
+
   const [activeTab, setActiveTab] = useState<'board' | 'milestones'>('board');
   const [projects, setProjects] = useState<any[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
@@ -56,17 +61,22 @@ export const ProjectKanban: React.FC = () => {
       }
       
       // Load milestones
-      const msRes = await projectService.getTasks({ workspaceId }); // using tasks as default fallback if no projects
       const msData = await projectService.getTasks({ workspaceId });
       setTasks(msData.data.tasks);
 
-      // Fetch Milestones
-      const milestonesData = [
-        { _id: 'ms1', title: 'Compile Strategic SWOT Matrix', dueDate: '2026-07-20', status: 'Completed', progress: 100, riskIndicator: 'Low' },
-        { _id: 'ms2', title: 'Acquire 10 User Interview Profiles', dueDate: '2026-07-25', status: 'Blocked', progress: 40, riskIndicator: 'High' },
-        { _id: 'ms3', title: 'Complete Liquid Glass Core Sandbox', dueDate: '2026-08-05', status: 'Pending', progress: 10, riskIndicator: 'Low' }
-      ];
-      setMilestones(milestonesData);
+      // Fetch Milestones from API
+      try {
+        const msRes = await milestoneService.getMilestones();
+        setMilestones(msRes.data.milestones || []);
+      } catch (msErr) {
+        console.error('Failed to load milestones from API, using fallback mocks', msErr);
+        const milestonesData = [
+          { _id: 'ms1', title: 'Compile Strategic SWOT Matrix', dueDate: '2026-07-20', status: 'Completed', progress: 100, riskIndicator: 'Low' },
+          { _id: 'ms2', title: 'Acquire 10 User Interview Profiles', dueDate: '2026-07-25', status: 'Blocked', progress: 40, riskIndicator: 'High' },
+          { _id: 'ms3', title: 'Complete Liquid Glass Core Sandbox', dueDate: '2026-08-05', status: 'Pending', progress: 10, riskIndicator: 'Low' }
+        ];
+        setMilestones(milestonesData);
+      }
 
     } catch (err) {
       console.error('Failed to load project details', err);
@@ -166,6 +176,28 @@ export const ProjectKanban: React.FC = () => {
     }
   };
 
+  const handleCreateMilestone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!msTitle || !msDue) return;
+
+    try {
+      await milestoneService.createMilestone({
+        title: msTitle,
+        description: msDesc,
+        dueDate: msDue
+      });
+      setShowMilestoneModal(false);
+      setMsTitle('');
+      setMsDesc('');
+      setMsDue('');
+      // Reload milestones
+      const msRes = await milestoneService.getMilestones();
+      setMilestones(msRes.data.milestones || []);
+    } catch (err) {
+      console.error('Failed to create milestone', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
@@ -198,7 +230,7 @@ export const ProjectKanban: React.FC = () => {
 
         {/* Action Controls */}
         <div className="flex gap-2">
-          {activeTab === 'board' && (
+          {activeTab === 'board' && isFounder && (
             <>
               <button 
                 onClick={() => setShowSprintModal(true)}
@@ -327,12 +359,14 @@ export const ProjectKanban: React.FC = () => {
           <div className="liquid-glass p-6 rounded-xl space-y-4">
             <div className="flex justify-between items-center border-b border-white/5 pb-3">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Milestone Roadmap Deadlines</h3>
-              <button 
-                onClick={() => setShowMilestoneModal(true)}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer"
-              >
-                <Plus size={13} /> Add Milestone
-              </button>
+              {isFounder && (
+                <button 
+                  onClick={() => setShowMilestoneModal(true)}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus size={13} /> Add Milestone
+                </button>
+              )}
             </div>
 
             <div className="space-y-4">
@@ -534,6 +568,62 @@ export const ProjectKanban: React.FC = () => {
                 className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white font-semibold cursor-pointer"
               >
                 Create Sprint
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Add Milestone Modal */}
+      {showMilestoneModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="fixed inset-0" onClick={() => setShowMilestoneModal(false)} />
+          <form onSubmit={handleCreateMilestone} className="w-full max-w-sm liquid-glass p-6 rounded-xl relative z-10 space-y-4">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">Create Milestone</h3>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Milestone Title</label>
+              <input
+                type="text"
+                required
+                placeholder="Product Beta Release"
+                className="w-full glass-input text-xs"
+                value={msTitle}
+                onChange={(e) => setMsTitle(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Description</label>
+              <textarea
+                rows={3}
+                placeholder="Core milestone goals..."
+                className="w-full glass-input text-xs resize-none"
+                value={msDesc}
+                onChange={(e) => setMsDesc(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Due Date</label>
+              <input
+                type="date"
+                required
+                className="w-full glass-input text-xs"
+                value={msDue}
+                onChange={(e) => setMsDue(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setShowMilestoneModal(false)}
+                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white font-semibold cursor-pointer"
+              >
+                Create Milestone
               </button>
             </div>
           </form>

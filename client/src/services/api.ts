@@ -9,16 +9,20 @@ const api = axios.create({
   }
 });
 
-// Auto-inject JWT token and active Startup ID
+// Auto-inject JWT token, active Startup ID & active Workspace ID
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   const startupId = localStorage.getItem('startupId');
+  const workspaceId = localStorage.getItem('activeWorkspaceId');
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   if (startupId) {
     config.headers['x-startup-id'] = startupId;
+  }
+  if (workspaceId) {
+    config.headers['x-workspace-id'] = workspaceId;
   }
   
   return config;
@@ -32,7 +36,8 @@ export const authService = {
   verifyOtp: (payload: any) => api.post('/auth/verify-otp', payload),
   login: (payload: any) => api.post('/auth/login', payload),
   getMe: () => api.get('/auth/me'),
-  inviteTeam: (payload: any) => api.post('/auth/invite', payload)
+  inviteTeam: (payload: any) => api.post('/auth/invite', payload),
+  changePassword: (payload: any) => api.post('/auth/change-password', payload)
 };
 
 // Onboarding & Profile API
@@ -144,6 +149,41 @@ export const notificationService = {
   markAllRead: () => api.patch('/notification/read-all'),
   createNotification: (payload: { receiverId: string; type: string; title: string; description: string; conversationId?: string; messageId?: string }) =>
     api.post('/notification/create', payload)
+};
+
+// Team Management API
+export const teamManagementService = {
+  inviteMember: (payload: { fullName: string; email: string; role: string; departmentId?: string; designation?: string; phone?: string; joiningDate?: string; skills?: string[]; employmentType?: string }) => 
+    api.post('/team/invite', payload),
+  getMembers: () => api.get('/team/members'),
+  changeRole: (payload: { memberId: string; role: string }) => api.patch('/team/change-role', payload),
+  removeMember: (memberId: string) => api.delete('/team/remove', { data: { memberId } }),
+  resendInvite: (invitationId: string) => api.post('/team/resend-invite', { invitationId }),
+  getMyPendingInvitation: () => api.get('/team/my-pending-invitation'),
+  acceptInvite: () => api.post('/team/accept-invite'),
+  declineInvite: () => api.post('/team/decline-invite')
+};
+
+// Workforce Task Tracking API
+export const workforceTaskService = {
+  getMyTasks: () => api.get('/tasks/my'),
+  updateStatus: (payload: { taskId: string; status: string; comment?: string; attachment?: { name: string; url: string } }) =>
+    api.patch('/tasks/status', payload),
+  completeTask: (payload: { taskId: string; comment?: string; attachment?: { name: string; url: string } }) =>
+    api.patch('/tasks/complete', payload),
+  approveTask: (payload: { taskId: string; feedback?: string; actualHours?: number }) =>
+    api.patch('/tasks/approve', payload),
+  rejectTask: (payload: { taskId: string; feedback: string }) =>
+    api.patch('/tasks/reject', payload)
+};
+
+// Milestones API
+export const milestoneService = {
+  getMilestones: () => api.get('/milestones'),
+  createMilestone: (payload: { title: string; description?: string; dueDate: string; dependencies?: string[]; associatedTasks?: string[] }) =>
+    api.post('/milestones', payload),
+  updateMilestone: (id: string, payload: any) => api.patch(`/milestones/${id}`, payload),
+  deleteMilestone: (id: string) => api.delete(`/milestones/${id}`)
 };
 
 export default api;

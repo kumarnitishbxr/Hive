@@ -28,6 +28,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [showEmoji, setShowEmoji] = useState(false);
   const [attachments, setAttachments] = useState<any[]>([]);
   
+  // Textarea ref for auto-grow
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   // Voice Recording simulation state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -39,7 +42,15 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   const emojis = ['👍', '❤️', '😂', '🎉', '🔥', '🚀', '👀', '🤔', '👏', '💯', '💡', '💻', '🤝', '✅', '⚠️'];
 
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Auto-grow effect for textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [text]);
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
     
     // Typing indicators mapping
@@ -71,8 +82,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
       handleSend();
     }
   };
@@ -81,7 +93,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const triggerAiSmartReply = () => {
     const smartReplies = [
       "On it! Will update the Kanban board shortly.",
-      "Looks excellent, let's schedule a alignment sync.",
+      "Looks excellent, let's schedule an alignment sync.",
       "Can we review this milestone progress today?",
       "Perfect, I've shared the slide deck with the investor.",
       "Understood. Let me look at the runway simulator changes.",
@@ -149,7 +161,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, []);
 
   return (
-    <div className="p-4 border-t border-white/5 bg-slate-950/60 backdrop-blur-md flex flex-col gap-2 relative z-30">
+    <div className="p-3 border-t border-white/5 bg-slate-950/80 flex flex-col gap-2 relative z-30 flex-shrink-0">
       
       {/* Reply Reference Preview Banner */}
       {replyToMessage && (
@@ -185,95 +197,100 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       )}
 
       {/* Input controls container */}
-      <div className="flex items-center gap-2 bg-white/3 border border-white/8 focus-within:border-indigo-500/50 rounded-xl px-3 py-2 transition-all">
+      <div className="flex items-end gap-2 bg-white/3 border border-white/8 focus-within:border-indigo-500/50 rounded-2xl px-3 py-1.5 transition-all">
         
         {/* Attachment menu trigger */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 mb-0.5">
           <button
             onClick={() => simulateFileUpload('image')}
             title="Attach Image"
             className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-indigo-400 rounded-lg transition cursor-pointer"
           >
-            <ImageIcon size={16} />
+            <ImageIcon size={15} />
           </button>
           <button
             onClick={() => simulateFileUpload('pdf')}
             title="Attach Document/PDF"
             className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-indigo-400 rounded-lg transition cursor-pointer"
           >
-            <Paperclip size={16} />
+            <Paperclip size={15} />
           </button>
         </div>
 
-        {/* Text Input */}
-        <input
-          type="text"
+        {/* Text Area Input */}
+        <textarea
+          ref={textareaRef}
           value={text}
           onChange={handleTextChange}
           onKeyDown={handleKeyPress}
           disabled={isRecording}
+          rows={1}
           placeholder={isRecording ? `Recording Voice Note... (${recordingSeconds}s)` : "Type a message..."}
-          className="flex-1 bg-transparent border-none outline-none text-xs text-white placeholder-gray-500"
+          className="flex-1 bg-transparent border-none outline-none text-xs text-white placeholder-gray-500 resize-none max-h-32 py-1.5 leading-relaxed"
+          style={{ height: 'auto' }}
         />
 
-        {/* Emoji Button */}
-        <div className="relative">
+        {/* Action icons row */}
+        <div className="flex items-center gap-0.5 mb-0.5">
+          {/* Emoji Button */}
+          <div className="relative">
+            <button
+              onClick={() => setShowEmoji(prev => !prev)}
+              title="Add Emoji"
+              className={`p-1.5 hover:bg-white/5 rounded-lg transition cursor-pointer ${showEmoji ? 'text-indigo-400' : 'text-gray-400 hover:text-gray-200'}`}
+            >
+              <Smile size={15} />
+            </button>
+            
+            {showEmoji && (
+              <div className="absolute bottom-10 right-0 p-2 bg-slate-900 border border-white/10 rounded-xl shadow-2xl grid grid-cols-5 gap-1.5 z-40 w-44">
+                {emojis.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => {
+                      setText(prev => prev + emoji);
+                      setShowEmoji(false);
+                    }}
+                    className="p-1 hover:bg-white/5 rounded text-sm transition cursor-pointer text-center"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Voice Note Recording Trigger */}
           <button
-            onClick={() => setShowEmoji(prev => !prev)}
-            title="Add Emoji"
-            className={`p-1.5 hover:bg-white/5 rounded-lg transition cursor-pointer ${showEmoji ? 'text-indigo-400' : 'text-gray-400 hover:text-gray-200'}`}
+            onClick={toggleVoiceRecording}
+            title={isRecording ? "Stop Voice Recording" : "Record Voice Note"}
+            className={`p-1.5 rounded-lg transition cursor-pointer ${
+              isRecording 
+                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
+                : 'hover:bg-white/5 text-gray-400 hover:text-gray-200'
+            }`}
           >
-            <Smile size={16} />
+            {isRecording ? <MicOff size={15} /> : <Mic size={15} />}
           </button>
-          
-          {showEmoji && (
-            <div className="absolute bottom-10 right-0 p-2 bg-slate-900 border border-white/10 rounded-xl shadow-2xl grid grid-cols-5 gap-1.5 z-40 w-44">
-              {emojis.map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() => {
-                    setText(prev => prev + emoji);
-                    setShowEmoji(false);
-                  }}
-                  className="p-1 hover:bg-white/5 rounded text-sm transition cursor-pointer text-center"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          )}
+
+          {/* AI smart reply quick option */}
+          <button
+            onClick={triggerAiSmartReply}
+            title="AI Smart Reply Suggestion"
+            className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-indigo-400 rounded-lg transition cursor-pointer border border-white/5"
+          >
+            <Sparkles size={15} />
+          </button>
+
+          {/* Send Button */}
+          <button
+            onClick={handleSend}
+            disabled={!text.trim() && attachments.length === 0}
+            className="p-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:hover:bg-indigo-600 text-white shadow-lg transition cursor-pointer ml-1"
+          >
+            <Send size={13} />
+          </button>
         </div>
-
-        {/* Voice Note Recording Trigger */}
-        <button
-          onClick={toggleVoiceRecording}
-          title={isRecording ? "Stop Voice Recording" : "Record Voice Note"}
-          className={`p-1.5 rounded-lg transition cursor-pointer ${
-            isRecording 
-              ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
-              : 'hover:bg-white/5 text-gray-400 hover:text-gray-200'
-          }`}
-        >
-          {isRecording ? <MicOff size={16} /> : <Mic size={16} />}
-        </button>
-
-        {/* AI smart reply quick option */}
-        <button
-          onClick={triggerAiSmartReply}
-          title="AI Smart Reply Suggestion"
-          className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-indigo-400 rounded-lg transition cursor-pointer border border-white/5"
-        >
-          <Sparkles size={16} />
-        </button>
-
-        {/* Send Button */}
-        <button
-          onClick={handleSend}
-          disabled={!text.trim() && attachments.length === 0}
-          className="p-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:hover:bg-indigo-600 text-white shadow-lg transition cursor-pointer"
-        >
-          <Send size={14} />
-        </button>
       </div>
     </div>
   );

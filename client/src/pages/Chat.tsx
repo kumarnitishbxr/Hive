@@ -167,7 +167,7 @@ export const ChatPage: React.FC = () => {
       <ChatList onSelectConversation={() => setMessageSearchQuery('')} />
 
       {/* Col 2: Chat Box Container */}
-      <div className="flex-1 flex flex-col h-full min-w-0 bg-slate-900/40 relative border-r border-white/5">
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-slate-900/40 relative border-r border-white/5">
         
         {activeConvo ? (
           <>
@@ -257,19 +257,30 @@ export const ChatPage: React.FC = () => {
                 </button>
               </div>
             )}
-
+            
             {/* Chat Body (Message Scrolling Canvas) */}
-            <div className="flex-1 overflow-y-auto space-y-2 py-4">
+            <div className="flex-1 overflow-y-auto p-5 space-y-0" ref={messagesContainerRef}>
               {filteredMessages.length > 0 ? (
-                filteredMessages.map((msg) => (
-                  <MessageBubble
-                    key={msg._id}
-                    message={msg}
-                    currentUserId={auth.user?.id || ''}
-                    onReply={setReplyingTo}
-                    onDelete={handleDeleteMessage}
-                  />
-                ))
+                filteredMessages.map((msg, idx) => {
+                  const getSenderId = (m: MessageType) => typeof m.senderId === 'object' ? m.senderId._id : m.senderId;
+                  const prevMsg = idx > 0 ? filteredMessages[idx - 1] : null;
+                  const nextMsg = idx < filteredMessages.length - 1 ? filteredMessages[idx + 1] : null;
+
+                  const isFirstInGroup = !prevMsg || getSenderId(prevMsg) !== getSenderId(msg);
+                  const isLastInGroup = !nextMsg || getSenderId(nextMsg) !== getSenderId(msg);
+
+                  return (
+                    <MessageBubble
+                      key={msg._id}
+                      message={msg}
+                      currentUserId={auth.user?.id || ''}
+                      onReply={setReplyingTo}
+                      onDelete={handleDeleteMessage}
+                      isFirstInGroup={isFirstInGroup}
+                      isLastInGroup={isLastInGroup}
+                    />
+                  );
+                })
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6">
                   <p className="text-xs text-gray-500">
@@ -278,16 +289,16 @@ export const ChatPage: React.FC = () => {
                 </div>
               )}
               
-              {/* Dynamic typing indicators in-flow */}
+              {/* Dynamic typing indicators in-flow (WhatsApp Style Bubble) */}
               {chatState.typingStatus[activeConvo._id] && 
                Object.values(chatState.typingStatus[activeConvo._id]).some(t => t.isTyping) && (
-                <div className="flex items-center gap-2 px-6 py-2">
-                  <div className="flex space-x-1">
-                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="flex items-start gap-3 w-full px-5 mt-2 animate-pulse">
+                  <div className="w-8 h-8 flex-shrink-0" />
+                  <div className="bg-[#1B2236] px-4 py-2.5 rounded-[18px] flex items-center gap-1.5 self-start">
+                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
-                  <span className="text-[10px] text-gray-500 italic">typing...</span>
                 </div>
               )}
               
@@ -339,7 +350,7 @@ export const ChatPage: React.FC = () => {
             exit={{ width: 0, opacity: 0 }}
             className="w-80 border-l border-white/5 bg-slate-950/80 backdrop-blur-md flex flex-col h-full z-15 overflow-hidden flex-shrink-0"
           >
-            <div className="p-4 border-b border-white/5 flex items-center justify-between flex-shrink-0">
+            <div className="p-4 border-b border-white/5 flex items-center justify-between flex-shrink-0 sticky top-0 bg-slate-950/80 backdrop-blur-md z-10">
               <span className="text-[10px] text-gray-500 font-extrabold tracking-wider uppercase">Conversation Info</span>
               <button 
                 onClick={() => setShowRightPanel(false)}
@@ -427,18 +438,18 @@ export const ChatPage: React.FC = () => {
               )}
 
               {/* Starred Messages / Pinned Messages List */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <span className="text-[9px] text-gray-500 font-extrabold tracking-wider uppercase flex items-center gap-1.5">
                   <Pin size={11} className="text-indigo-400" /> Pinned Messages
                 </span>
                 
-                <div className="space-y-1.5">
-                  <div className="p-2 rounded bg-white/2 border border-white/5 text-[11px] text-gray-400 space-y-1">
-                    <p className="italic">"We need to push the Sprint validation checks before Friday's investor sync."</p>
+                <div className="space-y-2">
+                  <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5 text-[11px] text-gray-400 space-y-1 hover:border-white/10 transition">
+                    <p className="italic leading-relaxed">"We need to push the Sprint validation checks before Friday's investor sync."</p>
                     <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-wider text-right">- Nitish Kumar</p>
                   </div>
-                  <div className="p-2 rounded bg-white/2 border border-white/5 text-[11px] text-gray-400 space-y-1">
-                    <p className="italic">"Pitch Deck Share links can be generated inside the CRM panel."</p>
+                  <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5 text-[11px] text-gray-400 space-y-1 hover:border-white/10 transition">
+                    <p className="italic leading-relaxed">"Pitch Deck Share links can be generated inside the CRM panel."</p>
                     <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-wider text-right">- Admin</p>
                   </div>
                 </div>

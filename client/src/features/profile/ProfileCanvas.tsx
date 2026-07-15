@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 import { startupService } from '../../services/api';
 import { Plus, Trash2, Edit } from 'lucide-react';
 
 export const ProfileCanvas: React.FC = () => {
+  const auth = useSelector((state: RootState) => state.auth);
+  const isFounder = auth.role === 'Founder' || auth.role === 'Co-Founder';
+
   const [activeTab, setActiveTab] = useState<'bmc' | 'swot' | 'competitors'>('bmc');
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -130,12 +135,14 @@ export const ProfileCanvas: React.FC = () => {
                 </div>
               ))}
             </div>
-            <button 
-              onClick={() => { setEditingField({ type: 'bmc', field: 'keyPartners' }); setEditingValue(profile.canvas.keyPartners.join('\n')); }}
-              className="text-[10px] text-indigo-400 font-semibold flex items-center gap-1 mt-3 cursor-pointer hover:underline"
-            >
-              <Edit size={10} /> Edit Entries
-            </button>
+            {isFounder && (
+              <button 
+                onClick={() => { setEditingField({ type: 'bmc', field: 'keyPartners' }); setEditingValue(profile.canvas.keyPartners.join('\n')); }}
+                className="text-[10px] text-indigo-400 font-semibold flex items-center gap-1 mt-3 cursor-pointer hover:underline"
+              >
+                <Edit size={10} /> Edit Entries
+              </button>
+            )}
           </div>
 
           {/* Key Activities & Resources Column */}
@@ -149,12 +156,14 @@ export const ProfileCanvas: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <button 
-                onClick={() => { setEditingField({ type: 'bmc', field: 'keyActivities' }); setEditingValue(profile.canvas.keyActivities.join('\n')); }}
-                className="text-[10px] text-purple-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
-              >
-                <Edit size={10} /> Edit Entries
-              </button>
+              {isFounder && (
+                <button 
+                  onClick={() => { setEditingField({ type: 'bmc', field: 'keyActivities' }); setEditingValue(profile.canvas.keyActivities.join('\n')); }}
+                  className="text-[10px] text-purple-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
+                >
+                  <Edit size={10} /> Edit Entries
+                </button>
+              )}
             </div>
             <div className="liquid-glass p-4 rounded-xl space-y-2">
               <h4 className="text-xs font-bold text-white border-b border-white/5 pb-1">Key Resources</h4>
@@ -165,12 +174,14 @@ export const ProfileCanvas: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <button 
-                onClick={() => { setEditingField({ type: 'bmc', field: 'keyResources' }); setEditingValue(profile.canvas.keyResources.join('\n')); }}
-                className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
-              >
-                <Edit size={10} /> Edit Entries
-              </button>
+              {isFounder && (
+                <button 
+                  onClick={() => { setEditingField({ type: 'bmc', field: 'keyResources' }); setEditingValue(profile.canvas.keyResources.join('\n')); }}
+                  className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
+                >
+                  <Edit size={10} /> Edit Entries
+                </button>
+              )}
             </div>
           </div>
 
@@ -184,12 +195,14 @@ export const ProfileCanvas: React.FC = () => {
                 </div>
               ))}
             </div>
-            <button 
-              onClick={() => { setEditingField({ type: 'bmc', field: 'valuePropositions' }); setEditingValue(profile.canvas.valuePropositions.join('\n')); }}
-              className="text-[10px] text-pink-400 font-semibold flex items-center gap-1 mt-3 cursor-pointer hover:underline"
-            >
-              <Edit size={10} /> Edit Entries
-            </button>
+            {isFounder && (
+              <button 
+                onClick={() => { setEditingField({ type: 'bmc', field: 'valuePropositions' }); setEditingValue(profile.canvas.valuePropositions.join('\n')); }}
+                className="text-[10px] text-pink-400 font-semibold flex items-center gap-1 mt-3 cursor-pointer hover:underline"
+              >
+                <Edit size={10} /> Edit Entries
+              </button>
+            )}
           </div>
 
           {/* Relationships & Channels Column */}
@@ -203,12 +216,14 @@ export const ProfileCanvas: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <button 
-                onClick={() => { setEditingField({ type: 'bmc', field: 'customerRelationships' }); setEditingValue(profile.canvas.customerRelationships.join('\n')); }}
-                className="text-[10px] text-blue-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
-              >
-                <Edit size={10} /> Edit Entries
-              </button>
+              {isFounder && (
+                <button 
+                  onClick={() => { setEditingField({ type: 'bmc', field: 'customerRelationships' }); setEditingValue(profile.canvas.customerRelationships.join('\n')); }}
+                  className="text-[10px] text-blue-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
+                >
+                  <Edit size={10} /> Edit Entries
+                </button>
+              )}
             </div>
             <div className="liquid-glass p-4 rounded-xl space-y-2">
               <h4 className="text-xs font-bold text-white border-b border-white/5 pb-1">Channels</h4>
@@ -219,12 +234,14 @@ export const ProfileCanvas: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <button 
-                onClick={() => { setEditingField({ type: 'bmc', field: 'channels' }); setEditingValue(profile.canvas.channels.join('\n')); }}
-                className="text-[10px] text-amber-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
-              >
-                <Edit size={10} /> Edit Entries
-              </button>
+              {isFounder && (
+                <button 
+                  onClick={() => { setEditingField({ type: 'bmc', field: 'channels' }); setEditingValue(profile.canvas.channels.join('\n')); }}
+                  className="text-[10px] text-amber-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
+                >
+                  <Edit size={10} /> Edit Entries
+                </button>
+              )}
             </div>
           </div>
 
@@ -238,12 +255,14 @@ export const ProfileCanvas: React.FC = () => {
                 </div>
               ))}
             </div>
-            <button 
-              onClick={() => { setEditingField({ type: 'bmc', field: 'customerSegments' }); setEditingValue(profile.canvas.customerSegments.join('\n')); }}
-              className="text-[10px] text-teal-400 font-semibold flex items-center gap-1 mt-3 cursor-pointer hover:underline"
-            >
-              <Edit size={10} /> Edit Entries
-            </button>
+            {isFounder && (
+              <button 
+                onClick={() => { setEditingField({ type: 'bmc', field: 'customerSegments' }); setEditingValue(profile.canvas.customerSegments.join('\n')); }}
+                className="text-[10px] text-teal-400 font-semibold flex items-center gap-1 mt-3 cursor-pointer hover:underline"
+              >
+                <Edit size={10} /> Edit Entries
+              </button>
+            )}
           </div>
 
           {/* Lower Cost Structure (2.5 width) */}
@@ -256,12 +275,14 @@ export const ProfileCanvas: React.FC = () => {
                 </div>
               ))}
             </div>
-            <button 
-              onClick={() => { setEditingField({ type: 'bmc', field: 'costStructure' }); setEditingValue(profile.canvas.costStructure.join('\n')); }}
-              className="text-[10px] text-red-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
-            >
-              <Edit size={10} /> Edit Entries
-            </button>
+            {isFounder && (
+              <button 
+                onClick={() => { setEditingField({ type: 'bmc', field: 'costStructure' }); setEditingValue(profile.canvas.costStructure.join('\n')); }}
+                className="text-[10px] text-red-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
+              >
+                <Edit size={10} /> Edit Entries
+              </button>
+            )}
           </div>
 
           {/* Lower Revenue Streams (2.5 width) */}
@@ -274,12 +295,14 @@ export const ProfileCanvas: React.FC = () => {
                 </div>
               ))}
             </div>
-            <button 
-              onClick={() => { setEditingField({ type: 'bmc', field: 'revenueStreams' }); setEditingValue(profile.canvas.revenueStreams.join('\n')); }}
-              className="text-[10px] text-cyan-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
-            >
-              <Edit size={10} /> Edit Entries
-            </button>
+            {isFounder && (
+              <button 
+                onClick={() => { setEditingField({ type: 'bmc', field: 'revenueStreams' }); setEditingValue(profile.canvas.revenueStreams.join('\n')); }}
+                className="text-[10px] text-cyan-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
+              >
+                <Edit size={10} /> Edit Entries
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -290,12 +313,14 @@ export const ProfileCanvas: React.FC = () => {
           <div className="liquid-glass p-5 rounded-xl space-y-3">
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <h4 className="text-sm font-bold text-emerald-400">Strengths (Internal)</h4>
-              <button 
-                onClick={() => { setEditingField({ type: 'swot', field: 'strengths' }); setEditingValue(profile.swot.strengths.join('\n')); }}
-                className="text-[10px] text-gray-500 hover:text-white cursor-pointer"
-              >
-                Edit
-              </button>
+              {isFounder && (
+                <button 
+                  onClick={() => { setEditingField({ type: 'swot', field: 'strengths' }); setEditingValue(profile.swot.strengths.join('\n')); }}
+                  className="text-[10px] text-gray-500 hover:text-white cursor-pointer"
+                >
+                  Edit
+                </button>
+              )}
             </div>
             <ul className="list-disc pl-4 text-xs space-y-2 text-gray-300">
               {profile.swot.strengths.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
@@ -305,12 +330,14 @@ export const ProfileCanvas: React.FC = () => {
           <div className="liquid-glass p-5 rounded-xl space-y-3">
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <h4 className="text-sm font-bold text-red-400">Weaknesses (Internal)</h4>
-              <button 
-                onClick={() => { setEditingField({ type: 'swot', field: 'weaknesses' }); setEditingValue(profile.swot.weaknesses.join('\n')); }}
-                className="text-[10px] text-gray-500 hover:text-white cursor-pointer"
-              >
-                Edit
-              </button>
+              {isFounder && (
+                <button 
+                  onClick={() => { setEditingField({ type: 'swot', field: 'weaknesses' }); setEditingValue(profile.swot.weaknesses.join('\n')); }}
+                  className="text-[10px] text-gray-500 hover:text-white cursor-pointer"
+                >
+                  Edit
+                </button>
+              )}
             </div>
             <ul className="list-disc pl-4 text-xs space-y-2 text-gray-300">
               {profile.swot.weaknesses.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
@@ -320,12 +347,14 @@ export const ProfileCanvas: React.FC = () => {
           <div className="liquid-glass p-5 rounded-xl space-y-3">
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <h4 className="text-sm font-bold text-blue-400">Opportunities (External)</h4>
-              <button 
-                onClick={() => { setEditingField({ type: 'swot', field: 'opportunities' }); setEditingValue(profile.swot.opportunities.join('\n')); }}
-                className="text-[10px] text-gray-500 hover:text-white cursor-pointer"
-              >
-                Edit
-              </button>
+              {isFounder && (
+                <button 
+                  onClick={() => { setEditingField({ type: 'swot', field: 'opportunities' }); setEditingValue(profile.swot.opportunities.join('\n')); }}
+                  className="text-[10px] text-gray-500 hover:text-white cursor-pointer"
+                >
+                  Edit
+                </button>
+              )}
             </div>
             <ul className="list-disc pl-4 text-xs space-y-2 text-gray-300">
               {profile.swot.opportunities.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
@@ -335,12 +364,14 @@ export const ProfileCanvas: React.FC = () => {
           <div className="liquid-glass p-5 rounded-xl space-y-3">
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <h4 className="text-sm font-bold text-amber-500">Threats (External)</h4>
-              <button 
-                onClick={() => { setEditingField({ type: 'swot', field: 'threats' }); setEditingValue(profile.swot.threats.join('\n')); }}
-                className="text-[10px] text-gray-500 hover:text-white cursor-pointer"
-              >
-                Edit
-              </button>
+              {isFounder && (
+                <button 
+                  onClick={() => { setEditingField({ type: 'swot', field: 'threats' }); setEditingValue(profile.swot.threats.join('\n')); }}
+                  className="text-[10px] text-gray-500 hover:text-white cursor-pointer"
+                >
+                  Edit
+                </button>
+              )}
             </div>
             <ul className="list-disc pl-4 text-xs space-y-2 text-gray-300">
               {profile.swot.threats.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
@@ -380,58 +411,60 @@ export const ProfileCanvas: React.FC = () => {
           </div>
 
           {/* Add Competitor inline */}
-          <form onSubmit={handleAddCompetitor} className="liquid-glass p-6 rounded-xl space-y-4">
-            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Log Competitor Intel</span>
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="block text-gray-400 mb-1">Competitor Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="FlowAgent Corp"
-                  className="w-full glass-input text-xs"
-                  value={compName}
-                  onChange={(e) => setCompName(e.target.value)}
-                />
+          {isFounder && (
+            <form onSubmit={handleAddCompetitor} className="liquid-glass p-6 rounded-xl space-y-4">
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Log Competitor Intel</span>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block text-gray-400 mb-1">Competitor Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="FlowAgent Corp"
+                    className="w-full glass-input text-xs"
+                    value={compName}
+                    onChange={(e) => setCompName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-400 mb-1">Est. Market Share (%)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 15%"
+                    className="w-full glass-input text-xs"
+                    value={compShare}
+                    onChange={(e) => setCompShare(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-400 mb-1">Pricing Model Model</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. $49/mo subscription"
+                    className="w-full glass-input text-xs"
+                    value={compPricing}
+                    onChange={(e) => setCompPricing(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-400 mb-1">USP Summary</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Direct integrations with Salesforce"
+                    className="w-full glass-input text-xs"
+                    value={compUsp}
+                    onChange={(e) => setCompUsp(e.target.value)}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-gray-400 mb-1">Est. Market Share (%)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 15%"
-                  className="w-full glass-input text-xs"
-                  value={compShare}
-                  onChange={(e) => setCompShare(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-gray-400 mb-1">Pricing Model Model</label>
-                <input
-                  type="text"
-                  placeholder="e.g. $49/mo subscription"
-                  className="w-full glass-input text-xs"
-                  value={compPricing}
-                  onChange={(e) => setCompPricing(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-gray-400 mb-1">USP Summary</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Direct integrations with Salesforce"
-                  className="w-full glass-input text-xs"
-                  value={compUsp}
-                  onChange={(e) => setCompUsp(e.target.value)}
-                />
-              </div>
-            </div>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer"
-            >
-              <Plus size={14} /> Add Competitor
-            </button>
-          </form>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer"
+              >
+                <Plus size={14} /> Add Competitor
+              </button>
+            </form>
+          )}
         </div>
       )}
 
