@@ -160,7 +160,7 @@ export const getConversations = async (req: Request, res: Response) => {
 
       const participantData = [];
       for (const p of populatedConvo.participants) {
-        const pObj = p.toObject() as any;
+        const pObj = (p as any).toObject ? (p as any).toObject() : p;
         // Query membership in startup to find role
         const memberRecord = await Member.findOne({ userId: pObj._id, startupId });
         pObj.role = memberRecord?.role || 'Team Member';
@@ -312,3 +312,38 @@ export const deleteMessage = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Internal Server Error deleting message' });
   }
 };
+
+// GET /chat/members
+export const getChatMembers = async (req: Request, res: Response) => {
+  try {
+    const startupId = req.startupId;
+    if (!startupId) {
+      return res.status(400).json({ error: 'Startup context not resolved' });
+    }
+
+    // Find all member records in the startup
+    const members = await Member.find({ startupId }).populate({
+      path: 'userId',
+      select: 'fullName email avatarUrl'
+    });
+
+    const users = members
+      .filter((m) => m.userId !== null)
+      .map((m) => {
+        const u = m.userId as any;
+        return {
+          _id: u._id,
+          fullName: u.fullName,
+          email: u.email,
+          avatarUrl: u.avatarUrl,
+          role: m.role
+        };
+      });
+
+    return res.status(200).json(users);
+  } catch (error) {
+    console.error('Error fetching chat members:', error);
+    return res.status(500).json({ error: 'Internal Server Error fetching members' });
+  }
+};
+
