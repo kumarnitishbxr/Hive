@@ -67,6 +67,10 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/milestones', milestoneRoutes);
 
+// Register global error handling middleware
+import { errorHandler } from './middleware/errorHandler';
+app.use(errorHandler);
+
 // Simple healthcheck
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date() });

@@ -15,11 +15,15 @@ const queryClient = new QueryClient({
   }
 });
 
+import { ThemeProvider } from './providers/ThemeProvider';
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <App />
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
       </QueryClientProvider>
     </Provider>
   </StrictMode>

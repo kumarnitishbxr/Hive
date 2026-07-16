@@ -9,6 +9,7 @@ import {
   getProactiveRecommendations 
 } from '../controllers/aiController';
 import { authenticateJWT, tenantIsolated } from '../middleware/auth';
+import { asyncHandler } from '../utils/asyncHandler';
 
 const router = Router();
 
@@ -16,12 +17,12 @@ const router = Router();
 router.use(authenticateJWT);
 router.use(tenantIsolated);
 
-router.post('/chat', aiChatStream);
-router.get('/health', getHealthScore);
-router.post('/summarize', summarizeWorkspace);
-router.post('/sprint', generateSprintSuggestion);
-router.post('/pitch', generateInvestorPitch);
-router.post('/search', searchWorkspace);
-router.post('/recommendations', getProactiveRecommendations);
+router.post('/chat', asyncHandler(aiChatStream));
+router.get('/health', asyncHandler(getHealthScore));
+router.post('/summarize', asyncHandler(summarizeWorkspace));
+router.post('/sprint', asyncHandler(generateSprintSuggestion));
+router.post('/pitch', asyncHandler(generateInvestorPitch));
+router.post('/search', asyncHandler(searchWorkspace));
+router.post('/recommendations', asyncHandler(getProactiveRecommendations));
 
 export default router;

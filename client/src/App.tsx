@@ -22,6 +22,7 @@ const ValidationEngine = React.lazy(() => import('./features/validation/Validati
 const InvestorCRM = React.lazy(() => import('./features/investors/InvestorCRM'));
 const DocumentHub = React.lazy(() => import('./features/documents/DocumentHub'));
 const AiCoach = React.lazy(() => import('./features/ai/AiCoach'));
+const AICopilotModal = React.lazy(() => import('./features/ai/components/AICopilotModal'));
 const ChatPage = React.lazy(() => import('./pages/Chat'));
 const NotificationsPage = React.lazy(() => import('./pages/Notifications'));
 const ChangePassword = React.lazy(() => import('./pages/ChangePassword'));
@@ -171,7 +172,7 @@ export const App: React.FC = () => {
 
   // 4. Fully Configured -> Render Liquid Glass Dashboard Workspaces
   return (
-    <div className="flex h-screen bg-slate-950 relative overflow-hidden text-gray-100 font-sans">
+    <div className="flex h-screen bg-background relative overflow-hidden text-foreground font-sans transition-colors duration-200">
       {/* Visual Organic Mesh Gradients Floating in Background */}
       <div className="mesh-glow mesh-indigo" />
       <div className="mesh-glow mesh-purple" />
@@ -241,22 +242,9 @@ export const App: React.FC = () => {
         </main>
         {/* Floating AI Agent FAB and Panel */}
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 select-none">
-          {showFloatingAi && (
-            <div className="w-[380px] h-[550px] rounded-2xl border border-white/10 bg-slate-950/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col mb-2">
-              <div className="flex justify-between items-center bg-white/2 px-4 py-2.5 border-b border-white/5">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">AI Co-Founder Panel</span>
-                <button 
-                  onClick={() => setShowFloatingAi(false)}
-                  className="text-gray-500 hover:text-white transition cursor-pointer text-xs p-1"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="flex-grow min-h-0 overflow-hidden">
-                <AiCoach />
-              </div>
-            </div>
-          )}
+          <Suspense fallback={null}>
+            <AICopilotModal isOpen={showFloatingAi} onClose={() => setShowFloatingAi(false)} />
+          </Suspense>
           <button
             onClick={() => setShowFloatingAi(prev => !prev)}
             className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-xl shadow-indigo-500/25 transition-transform duration-300 hover:scale-105 cursor-pointer bg-gradient-to-tr from-indigo-500 via-purple-500 to-emerald-500 relative`}

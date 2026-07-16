@@ -3,6 +3,7 @@ import { Search, Terminal } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import NotificationBell from './Notification/NotificationBell';
+import ThemeToggle from '../ThemeToggle';
 
 interface HeaderProps {
   onSearchSelect: (tab: string) => void;
@@ -58,6 +59,10 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
             onSearchSelect('chat');
           }}
         />
+        
+        {/* Central Theme Toggle Switcher */}
+        <ThemeToggle />
+        
         <div className="h-5 w-[1px] bg-white/10" />
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

@@ -30,6 +30,33 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
+// Response interceptor for centralized error parsing and automatic retry logic
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const { config, response } = error;
+    
+    // Add retry logic for network connection issues or transient 5xx errors
+    if (config && (!response || (response.status >= 500 && response.status <= 599))) {
+      config.__retryCount = config.__retryCount || 0;
+      if (config.__retryCount < 3) {
+        config.__retryCount += 1;
+        // Wait with exponential backoff: 1s, 2s, 4s
+        const backoffDelay = Math.pow(2, config.__retryCount) * 500;
+        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+        return api(config);
+      }
+    }
+
+    // Format server standardized errors or fallback to default message
+    const errorMessage = response?.data?.error || response?.data?.message || error.message || 'An unexpected API error occurred.';
+    
+    // Inject the cleaned message into the rejected promise
+    error.message = errorMessage;
+    return Promise.reject(error);
+  }
+);
+
 // Auth API
 export const authService = {
   register: (payload: any) => api.post('/auth/register', payload),
