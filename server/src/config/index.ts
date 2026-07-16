@@ -38,6 +38,7 @@ export const config = {
   jwtExpiry: process.env.JWT_EXPIRY || '24h',
   corsOrigins: parseCorsOrigins(),
   redis: {
+    url: process.env.REDIS_URL || process.env.REDIS_TLS_URL || undefined,
     host: process.env.REDIS_HOST || '127.0.0.1',
     port: Number(process.env.REDIS_PORT) || 6379,
     password: process.env.REDIS_PASSWORD || undefined,
