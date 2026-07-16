@@ -110,7 +110,7 @@ export const bootstrapOnboarding = async (req: Request, res: Response) => {
     // Create default "Getting Started" documentation page
     const introPage = new Page({
       workspaceId: workspace._id,
-      title: '🚀 Launching StartupOps',
+      title: '🚀 Launching Hive',
       isFolder: false,
       content: `Welcome to **${name}**'s shared workspaces.
       

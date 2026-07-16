@@ -9,7 +9,7 @@ export interface IDocument extends MongooseDocument {
   uploadedBy: Schema.Types.ObjectId;
   fileVersion: number;
   ocrText?: string;
-  ocrStatus: 'Pending' | 'Completed' | 'Failed';
+  ocrStatus: 'Pending' | 'Completed' | 'Failed' | 'Unavailable';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,7 +38,7 @@ const DocumentSchema = new Schema<IDocument>({
   uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   fileVersion: { type: Number, default: 1 },
   ocrText: { type: String },
-  ocrStatus: { type: String, enum: ['Pending', 'Completed', 'Failed'], default: 'Pending' }
+  ocrStatus: { type: String, enum: ['Pending', 'Completed', 'Failed', 'Unavailable'], default: 'Pending' }
 }, { timestamps: true });
 
 // Setup text index for OCR search content
@@ -63,4 +63,3 @@ const ActivityLogSchema = new Schema<IActivityLog>({
 
 export const DocumentModel = model<IDocument>('Document', DocumentSchema);
 export const ActivityLog = model<IActivityLog>('ActivityLog', ActivityLogSchema);
-

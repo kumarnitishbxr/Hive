@@ -6,6 +6,7 @@ import { RootState } from '../store';
 import { setConnected } from '../store/slices/socketSlice';
 import { setTypingIndicator } from '../store/slices/chatSlice';
 import { addNotification } from '../store/slices/notificationSlice';
+import { getSocketUrl } from '../lib/env';
 
 let socket: Socket | null = null;
 
@@ -27,7 +28,7 @@ export const useSocket = () => {
     }
 
     if (!socket) {
-      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5100';
+      const socketUrl = getSocketUrl();
       socket = io(socketUrl, {
         reconnection: true,
         reconnectionAttempts: 10,

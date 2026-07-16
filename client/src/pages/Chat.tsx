@@ -324,10 +324,10 @@ export const ChatPage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               className="max-w-md liquid-glass p-8 rounded-2xl flex flex-col items-center gap-4 text-center border border-white/10"
             >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-emerald-500 flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-indigo-500/20">
-                S
+              <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white text-lg shadow-md shadow-blue-500/15">
+                H
               </div>
-              <h2 className="text-sm font-extrabold text-white tracking-wide uppercase">StartupOps Chat Hub</h2>
+              <h2 className="text-sm font-extrabold text-foreground tracking-wide uppercase">Hive Chat Hub</h2>
               <p className="text-xs text-gray-400 leading-relaxed">
                 Connect and coordinate with your co-founders, team members, and mentors in real-time. Start a direct thread or launch a group channel.
               </p>

@@ -40,17 +40,17 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
   );
 
   return (
-    <header className="h-16 border-b border-white/5 bg-slate-950/40 backdrop-blur-md flex items-center justify-between px-6 z-40 flex-shrink-0">
+    <header className="h-[72px] border-b border-border bg-[color:var(--surface-elevated)] backdrop-blur-xl flex items-center justify-between px-6 z-40 flex-shrink-0 transition-all duration-150">
       {/* Command Palette Trigger */}
       <button 
         onClick={() => setShowPalette(true)}
-        className="flex items-center gap-3 bg-white/5 border border-white/8 hover:border-white/15 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-400 transition cursor-pointer w-72"
+        className="flex items-center gap-3 bg-[color:var(--surface-strong)] border border-border hover:border-primary/25 hover:bg-card px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground transition duration-150 cursor-pointer w-72 focus:outline-none"
       >
-        <Search size={14} className="text-gray-500" />
+        <Search size={14} className="text-muted-foreground" />
         <span className="flex-1 text-left">Search or run command...</span>
-        <kbd className="bg-white/5 px-1.5 py-0.5 rounded border border-white/10 text-[9px] text-gray-500">⌘K</kbd>
+        <kbd className="bg-background/70 px-1.5 py-0.5 rounded border border-border text-[9px] text-muted-foreground font-mono">⌘K</kbd>
       </button>
-
+ 
       {/* Notifications indicator */}
       <div className="flex items-center gap-4">
         <NotificationBell 
@@ -63,32 +63,32 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
         {/* Central Theme Toggle Switcher */}
         <ThemeToggle />
         
-        <div className="h-5 w-[1px] bg-white/10" />
+        <div className="h-5 w-[1px] bg-border dark:bg-[rgba(255,255,255,0.08)]" />
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">WORKSPACE ACTIVE</span>
+          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">WORKSPACE ACTIVE</span>
         </div>
       </div>
 
 
       {/* Command Palette Modal */}
       {showPalette && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center pt-[15vh]">
+        <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-sm z-50 flex items-start justify-center pt-[15vh]">
           <div className="fixed inset-0" onClick={() => setShowPalette(false)} />
-          <div className="w-full max-w-lg liquid-glass rounded-xl overflow-hidden shadow-2xl relative z-10">
-            <div className="flex items-center gap-3 p-3 border-b border-white/5 bg-white/2">
+          <div className="theme-panel w-full max-w-lg rounded-xl overflow-hidden relative z-10">
+            <div className="flex items-center gap-3 p-3 border-b border-border bg-[color:var(--surface-elevated)]">
               <Terminal size={16} className="text-indigo-400" />
               <input
                 autoFocus
                 type="text"
                 placeholder="Type a command or shortcut..."
-                className="w-full bg-transparent outline-none border-none text-white text-sm"
+                className="w-full bg-transparent outline-none border-none text-foreground text-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               <button 
                 onClick={() => setShowPalette(false)}
-                className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-0.5 rounded text-gray-400"
+                className="text-xs bg-background/60 hover:bg-muted border border-border px-2 py-0.5 rounded text-muted-foreground"
               >
                 ESC
               </button>
@@ -99,14 +99,14 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
                   <button
                     key={idx}
                     onClick={cmd.action}
-                    className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-gray-300 hover:bg-indigo-600 hover:text-white transition cursor-pointer flex items-center justify-between"
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-foreground hover:bg-blue-600 hover:text-white transition cursor-pointer flex items-center justify-between"
                   >
                     <span>{cmd.name}</span>
-                    <span className="text-[10px] text-gray-500 font-normal uppercase">Action</span>
+                    <span className="text-[10px] text-muted-foreground font-normal uppercase">Action</span>
                   </button>
                 ))
               ) : (
-                <p className="p-3 text-center text-xs text-gray-500">No matching shortcuts found.</p>
+                <p className="p-3 text-center text-xs text-muted-foreground">No matching shortcuts found.</p>
               )}
             </div>
           </div>

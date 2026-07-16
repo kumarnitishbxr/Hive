@@ -254,7 +254,7 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <div className="flex flex-col items-end gap-1 shrink-0">
                         <span className="text-[9px] text-gray-500">{formatLastActive(convo.lastMessageTime)}</span>
                         {convo.unreadCount > 0 && (
                           <span className="w-4 h-4 rounded-full bg-indigo-600 text-white font-extrabold text-[9px] flex items-center justify-center animate-pulse">
@@ -314,7 +314,7 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <div className="flex flex-col items-end gap-1 shrink-0">
                         <span className="text-[9px] text-gray-500">{formatLastActive(convo.lastMessageTime)}</span>
                         {convo.unreadCount > 0 && (
                           <span className="w-4 h-4 rounded-full bg-indigo-600 text-white font-extrabold text-[9px] flex items-center justify-center animate-pulse">

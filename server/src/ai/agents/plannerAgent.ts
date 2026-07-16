@@ -123,7 +123,7 @@ export const executePlannerWorkflow = async (
   }
 
   // Fallback streaming brief
-  const fallbackText = `### AI Co-Founder Audit\n\nI sweeps the workspace context for StartupOps:\n\n` +
+  const fallbackText = `### AI Co-Founder Audit\n\nI sweeps the workspace context for Hive:\n\n` +
     `- **Execution Status**: Velocity remains consistent. Active items are logged.\n` +
     `- **Recommendations**: Schedule standup task reviews and checklist confirmations.`;
 

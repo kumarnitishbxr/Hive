@@ -57,7 +57,7 @@ export const AuthPages: React.FC<{ onVerificationSuccess: () => void }> = ({ onV
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center bg-slate-950 px-4 py-12 overflow-hidden">
+    <div className="min-h-screen relative flex items-center justify-center bg-background px-4 py-12 overflow-hidden">
       {/* Floating Animated Mesh Gradients */}
       <div className="mesh-glow mesh-indigo" />
       <div className="mesh-glow mesh-purple" />
@@ -65,10 +65,10 @@ export const AuthPages: React.FC<{ onVerificationSuccess: () => void }> = ({ onV
 
       <div className="w-full max-w-md liquid-glass p-8 rounded-2xl relative z-10">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
-            StartupOps
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+            Hive
           </h1>
-          <p className="text-gray-400 mt-2 text-sm">
+          <p className="text-muted-foreground mt-2 text-sm">
             {step === 'form' 
               ? (isLogin ? 'Sign in to access your digital workspace' : 'Register your founder account') 
               : 'Enter verification code to secure your session'
@@ -77,7 +77,7 @@ export const AuthPages: React.FC<{ onVerificationSuccess: () => void }> = ({ onV
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-900/30 border border-red-500/50 rounded-lg text-red-200 text-xs">
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-500 text-xs">
             {error}
           </div>
         )}
@@ -86,11 +86,11 @@ export const AuthPages: React.FC<{ onVerificationSuccess: () => void }> = ({ onV
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">FULL NAME</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">FULL NAME</label>
                 <input
                   type="text"
                   required
-                  placeholder="Nitish Kumar"
+                  placeholder="Erlich Bachman"
                   className="w-full glass-input text-sm"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -98,18 +98,18 @@ export const AuthPages: React.FC<{ onVerificationSuccess: () => void }> = ({ onV
               </div>
             )}
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1">EMAIL ADDRESS</label>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">EMAIL ADDRESS</label>
               <input
                 type="email"
                 required
-                placeholder="founder@startupops.co"
+                placeholder="founder@hive.co"
                 className="w-full glass-input text-sm"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1">PASSWORD</label>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">PASSWORD</label>
               <input
                 type="password"
                 required
@@ -131,7 +131,7 @@ export const AuthPages: React.FC<{ onVerificationSuccess: () => void }> = ({ onV
             <div className="text-center mt-6">
               <button
                 type="button"
-                className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition cursor-pointer"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-500 font-medium transition cursor-pointer"
                 onClick={() => {
                   setIsLogin(!isLogin);
                   setError('');
@@ -144,7 +144,7 @@ export const AuthPages: React.FC<{ onVerificationSuccess: () => void }> = ({ onV
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1">ENTER 6-DIGIT OTP</label>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">ENTER 6-DIGIT OTP</label>
               <input
                 type="text"
                 maxLength={6}
@@ -154,7 +154,7 @@ export const AuthPages: React.FC<{ onVerificationSuccess: () => void }> = ({ onV
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
               />
-              <p className="text-gray-500 text-[10px] mt-1 text-center">Check your terminal log for the OTP code.</p>
+              <p className="text-muted-foreground text-[10px] mt-1 text-center">Check your terminal log for the OTP code.</p>
             </div>
 
             <button
@@ -168,7 +168,7 @@ export const AuthPages: React.FC<{ onVerificationSuccess: () => void }> = ({ onV
             <div className="text-center mt-4">
               <button
                 type="button"
-                className="text-xs text-gray-400 hover:text-gray-300 transition cursor-pointer"
+                className="text-xs text-muted-foreground hover:text-foreground transition cursor-pointer"
                 onClick={() => setStep('form')}
               >
                 Back to Registration

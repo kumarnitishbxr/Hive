@@ -51,7 +51,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
         className={`relative p-1.5 rounded-lg border transition cursor-pointer ${
           isOpen 
             ? 'bg-indigo-600/10 border-indigo-500/30 text-indigo-400' 
-            : 'border-white/5 text-gray-400 hover:text-gray-200 hover:border-white/10'
+            : 'border-border text-muted-foreground hover:text-foreground hover:border-primary/25'
         }`}
       >
         <Bell size={15} />

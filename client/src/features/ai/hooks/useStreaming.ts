@@ -1,9 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ICitation } from '../types';
+import { getApiBaseUrl } from '../../../lib/env';
 
 export const useStreaming = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    // Cleanup active streams on unmount to prevent leaks
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const cancelStream = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsStreaming(false);
+    }
+  };
 
   const streamChat = async (
     prompt: string,
@@ -11,13 +30,21 @@ export const useStreaming = () => {
     onToken: (token: string) => void,
     onComplete: (data: { conversationId: string; citations: ICitation[]; suggestedFollowups: string[] }) => void
   ) => {
+    // If a stream is already active, cancel it first
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsStreaming(true);
     setStreamError(null);
 
     try {
       const token = localStorage.getItem('token');
       const startupId = localStorage.getItem('startupId');
-      const baseApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+      const baseApiUrl = getApiBaseUrl();
 
       const response = await fetch(`${baseApiUrl}/ai/chat`, {
         method: 'POST',
@@ -29,7 +56,8 @@ export const useStreaming = () => {
         body: JSON.stringify({
           prompt,
           conversationId: conversationId || undefined
-        })
+        }),
+        signal: controller.signal
       });
 
       if (!response.body) throw new Error('Streaming response body empty.');
@@ -40,6 +68,10 @@ export const useStreaming = () => {
       let buffer = '';
 
       while (!finished) {
+        if (controller.signal.aborted) {
+          break;
+        }
+
         const { value, done } = await reader.read();
         finished = done;
         if (value) {
@@ -75,13 +107,20 @@ export const useStreaming = () => {
         }
       }
     } catch (err: any) {
-      console.error('Streaming connection failed:', err);
-      setStreamError(err.message || 'Error executing stream.');
+      if (err.name === 'AbortError') {
+        console.log('Stream request aborted.');
+      } else {
+        console.error('Streaming connection failed:', err);
+        setStreamError(err.message || 'Error executing stream.');
+      }
     } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
       setIsStreaming(false);
     }
   };
 
-  return { streamChat, isStreaming, streamError };
+  return { streamChat, cancelStream, isStreaming, streamError };
 };
 export default useStreaming;

@@ -3,6 +3,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 import { connectDB } from './db';
 import config from './config';
 
@@ -25,10 +26,30 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
+const isAllowedOrigin = (origin?: string) => {
+  if (!origin) {
+    return true;
+  }
+
+  if (!config.isProduction) {
+    return true;
+  }
+
+  return config.corsOrigins.includes(origin);
+};
+
 const io = new Server(server, {
   cors: {
-    origin: '*', // For development simplicity, allow all origins
-    methods: ['GET', 'POST', 'PATCH', 'DELETE']
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error('CORS origin not allowed'));
+    },
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'DELETE']
   }
 });
 
@@ -39,8 +60,13 @@ const PORT = config.port;
 
 // Middleware
 const corsOptions = {
-  origin: (origin: any, callback: any) => {
-    callback(null, true); // Dynamically allow incoming origin
+  origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error('CORS origin not allowed'));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-startup-id', 'x-workspace-id'],
@@ -73,7 +99,15 @@ app.use(errorHandler);
 
 // Simple healthcheck
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'healthy', timestamp: new Date() });
+  const dbReady = mongoose.connection.readyState === 1;
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date(),
+    services: {
+      api: 'up',
+      database: dbReady
+    }
+  });
 });
 
 // Socket.io Real-time Event Rooms
@@ -128,11 +162,14 @@ io.on('connection', (socket) => {
 
 // Start Server
 const start = async () => {
-  await connectDB();
   server.listen(PORT, () => {
-    console.log(`Server listening dynamically on http://localhost:${PORT}`);
+    console.log(`Server listening on port ${PORT}`);
   });
+
+  const dbConnected = await connectDB();
+  if (!dbConnected) {
+    console.warn('Server started without MongoDB. Database-backed features will remain unavailable until reconnection succeeds.');
+  }
 };
 
 start();
-

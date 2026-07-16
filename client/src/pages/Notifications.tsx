@@ -80,10 +80,10 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ onNavigate
   const totalFilteredCount = todayList.length + yesterdayList.length + earlierList.length;
 
   return (
-    <div className="flex-grow flex flex-col h-full bg-slate-950/30 overflow-hidden p-6 max-w-4xl w-full mx-auto relative z-10 font-sans">
+    <div className="grow flex flex-col h-full bg-slate-950/30 overflow-hidden p-6 max-w-4xl w-full mx-auto relative z-10 font-sans">
       
       {/* Page Header */}
-      <div className="flex items-center justify-between pb-6 border-b border-white/5 flex-shrink-0">
+      <div className="flex items-center justify-between pb-6 border-b border-white/5 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-lg">
             <Bell size={18} />

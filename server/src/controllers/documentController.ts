@@ -4,7 +4,7 @@ import { DocumentModel } from '../models/Document';
 export const uploadDocument = async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthenticated.' });
-    const { name, category, sizeBytes, url } = req.body;
+    const { name, category, sizeBytes, url, ocrText } = req.body;
     const startupId = req.startupId;
 
     if (!name || !category || !url) {
@@ -18,39 +18,16 @@ export const uploadDocument = async (req: Request, res: Response) => {
       url,
       sizeBytes: sizeBytes || 1024,
       uploadedBy: req.user.id,
-      ocrStatus: 'Pending'
+      ocrText: typeof ocrText === 'string' ? ocrText.trim() : '',
+      ocrStatus: typeof ocrText === 'string' && ocrText.trim() ? 'Completed' : 'Unavailable'
     });
 
     await document.save();
 
-    // Trigger Mock OCR process asynchronously
-    // Simulate background BullMQ worker
-    setTimeout(async () => {
-      try {
-        let mockOcrText = '';
-        if (category === 'NDA') {
-          mockOcrText = 'MUTUAL NON-DISCLOSURE AGREEMENT. This agreement is made between Party A and Party B to safeguard confidential business strategies, cap tables, intellectual property disclosures, and strategic codes.';
-        } else if (category === 'CapTable') {
-          mockOcrText = 'CAPITALIZATION TABLE. Total Authorized Shares: 10,000,000. Founder Allocation: 6,000,000 (60%). Employee Option Pool: 1,500,000 (15%). Angel Round Investor: 2,500,000 (25%).';
-        } else {
-          mockOcrText = `OCR Extraction successful for file "${name}". Contains general corporate records and operational parameters.`;
-        }
-
-        await DocumentModel.findByIdAndUpdate(document._id, {
-          $set: {
-            ocrText: mockOcrText,
-            ocrStatus: 'Completed'
-          }
-        });
-        console.log(`[Mock OCR Engine] Parsed document: ${name}`);
-      } catch (err) {
-        await DocumentModel.findByIdAndUpdate(document._id, { $set: { ocrStatus: 'Failed' } });
-        console.error('Mock OCR failed', err);
-      }
-    }, 4000); // 4 seconds delay to mimic asynchronous worker queue processing
-
     res.status(201).json({ 
-      message: 'Document uploaded. Background OCR processing has started.',
+      message: document.ocrStatus === 'Completed'
+        ? 'Document uploaded with searchable OCR text.'
+        : 'Document uploaded. OCR extraction is not configured in this environment.',
       document 
     });
   } catch (error) {

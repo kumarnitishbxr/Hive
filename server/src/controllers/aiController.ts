@@ -3,6 +3,7 @@ import { executePlannerWorkflow } from '../ai/agents/plannerAgent';
 import { searchSimilarity } from '../services/ai/vectorStore';
 import { AIService } from '../services/AIService';
 import { AIConversationRepository } from '../repositories/AIConversationRepository';
+import { AIConversation } from '../models/AI';
 import { sendSuccess } from '../utils/responseHandler';
 import AppError from '../utils/AppError';
 
@@ -163,6 +164,49 @@ export const getHealthScore = async (req: Request, res: Response) => {
   return sendSuccess(res, result, 200);
 };
 
+export const getConversations = async (req: Request, res: Response) => {
+  const workspaceId = req.startupId;
+  const userId = req.user?.id;
+
+  if (!workspaceId || !userId) {
+    throw new AppError('Workspace and user context are required.', 400);
+  }
+
+  const conversations = await AIConversation
+    .find({ workspaceId, userId })
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  const normalized = conversations.map((conversation: any) => {
+    const firstUserPrompt = conversation.messages?.find((message: any) => message.role === 'user')?.content;
+    return {
+      ...conversation,
+      title: firstUserPrompt ? firstUserPrompt.slice(0, 60) : 'New conversation',
+      isPinned: false
+    };
+  });
+
+  return sendSuccess(res, { conversations: normalized }, 200);
+};
+
+export const deleteConversation = async (req: Request, res: Response) => {
+  const workspaceId = req.startupId;
+  const userId = req.user?.id;
+  const { id } = req.params;
+
+  if (!workspaceId || !userId) {
+    throw new AppError('Workspace and user context are required.', 400);
+  }
+
+  const deleted = await AIConversation.findOneAndDelete({ _id: id, workspaceId, userId });
+
+  if (!deleted) {
+    throw new AppError('Conversation not found.', 404);
+  }
+
+  return sendSuccess(res, { id }, 200, 'Conversation deleted.');
+};
+
 export default {
   aiChatStream,
   summarizeWorkspace,
@@ -170,5 +214,7 @@ export default {
   generateInvestorPitch,
   searchWorkspace,
   getProactiveRecommendations,
-  getHealthScore
+  getHealthScore,
+  getConversations,
+  deleteConversation
 };

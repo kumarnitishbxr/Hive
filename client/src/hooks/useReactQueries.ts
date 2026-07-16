@@ -143,7 +143,14 @@ export const useSprintBurndown = (sprintId: string | null) => {
     queryFn: async () => {
       if (!sprintId) return [];
       const res = await projectService.getSprintBurndown(sprintId);
-      return res.data.burndown || [];
+      const ideal = res.data.ideal || [];
+      const actual = res.data.actual || [];
+
+      return ideal.map((point: any, index: number) => ({
+        date: point.date,
+        ideal: point.hours,
+        actual: actual[index]?.hours ?? point.hours
+      }));
     },
     enabled: !!sprintId,
     staleTime: 1000 * 60 * 5,
@@ -650,5 +657,4 @@ export const useUpdateInvestor = () => {
     }
   });
 };
-
 

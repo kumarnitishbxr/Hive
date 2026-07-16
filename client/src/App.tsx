@@ -182,29 +182,29 @@ export const App: React.FC = () => {
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Workspace Frame */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10 bg-secondary/65 transition-colors duration-150">
         {/* Workspace Search Header */}
         <Header onSearchSelect={setActiveTab} />
 
         {/* Pending Invitation Banner */}
         {pendingInvitation && (
-          <div className="mx-6 mt-4 p-4 rounded-xl liquid-glass border border-amber-500/30 bg-amber-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden z-20">
+          <div className="mx-6 mt-4 p-4 rounded-xl liquid-glass border border-amber-500/30 bg-amber-500/8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden z-20">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 flex-shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
                 <Mail size={20} />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Pending Workspace Invitation</h4>
-                <p className="text-xs text-gray-300 mt-1">
+                <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">Pending Workspace Invitation</h4>
+                <p className="text-xs text-muted-foreground mt-1">
                   You have been invited to join this startup workspace as a <span className="text-amber-300 font-semibold">{pendingInvitation.role}</span>. Please accept to activate your status.
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
               <button
                 onClick={handleDeclineInvitation}
                 disabled={invitationLoading}
-                className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 text-xs font-bold text-muted-foreground hover:text-foreground bg-background/50 hover:bg-muted border border-border rounded-xl transition cursor-pointer disabled:opacity-50"
               >
                 Decline
               </button>
@@ -247,7 +247,7 @@ export const App: React.FC = () => {
           </Suspense>
           <button
             onClick={() => setShowFloatingAi(prev => !prev)}
-            className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-xl shadow-indigo-500/25 transition-transform duration-300 hover:scale-105 cursor-pointer bg-gradient-to-tr from-indigo-500 via-purple-500 to-emerald-500 relative`}
+            className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-xl shadow-indigo-500/25 transition-transform duration-300 hover:scale-105 cursor-pointer bg-linear-to-tr from-indigo-500 via-purple-500 to-emerald-500 relative`}
             title="Ask AI Co-Founder"
           >
             <Sparkles size={20} className={showFloatingAi ? 'rotate-12' : 'animate-pulse'} />

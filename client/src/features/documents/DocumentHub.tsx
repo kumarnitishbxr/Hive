@@ -36,24 +36,19 @@ export const DocumentHub: React.FC = () => {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!docName || !docCategory) return;
+    if (!docName || !docCategory || !docUrl.trim()) return;
 
     try {
-      const finalUrl = docUrl || 'https://cloudinary.com/f/custom_invoice_holder.pdf';
       await uploadDocMutation.mutateAsync({
         name: docName,
         category: docCategory,
-        url: finalUrl,
+        url: docUrl.trim(),
         sizeBytes: 154000
       });
 
       setShowUploadModal(false);
       setDocName('');
       setDocUrl('');
-      
-      // Live reload trigger
-      refetch();
-      setTimeout(refetch, 4500);
     } catch (err) {
       console.error('Failed to upload document file', err);
     }
@@ -175,6 +170,10 @@ export const DocumentHub: React.FC = () => {
                       <span className="text-[8px] bg-amber-500/10 text-amber-500 px-2 py-1 rounded font-bold border border-amber-500/20 animate-pulse shrink-0">
                         OCR PENDING
                       </span>
+                    ) : doc.ocrStatus === 'Unavailable' ? (
+                      <span className="text-[8px] bg-slate-500/10 text-slate-400 px-2 py-1 rounded font-bold border border-slate-500/20 shrink-0">
+                        OCR OFF
+                      </span>
                     ) : (
                       <span className="text-[8px] bg-red-500/10 text-red-500 px-2 py-1 rounded font-bold shrink-0">
                         OCR FAILED
@@ -267,14 +266,18 @@ export const DocumentHub: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Cloud URL (Optional)</label>
+              <label className="block text-xs text-gray-400 mb-1">Cloud URL</label>
               <input
                 type="text"
-                placeholder="Cloudinary URL link..."
+                required
+                placeholder="https://..."
                 className="w-full glass-input text-xs"
                 value={docUrl}
                 onChange={(e) => setDocUrl(e.target.value)}
               />
+              <p className="text-[10px] text-gray-500 mt-1">
+                This environment stores the file reference and metadata only. OCR text must come from a real extraction pipeline.
+              </p>
             </div>
             <div className="flex justify-end gap-2 text-xs">
               <button

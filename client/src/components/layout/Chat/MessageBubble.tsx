@@ -79,7 +79,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     >
       {/* Col 1: Sender Avatar spacer (Only for incoming messages) */}
       {!isMe && (
-        <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
+        <div className="shrink-0 w-8 h-8 flex items-center justify-center">
           {isFirstInGroup && (
             senderAvatar ? (
               <img 
@@ -122,11 +122,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             message.deleted 
               ? 'bg-slate-900 border border-white/5 italic text-gray-500' 
               : isMe 
-                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white' 
+                ? 'bg-linear-to-r from-indigo-600 to-purple-600 text-white' 
                 : 'bg-[#1B2236] text-white'
           }`}
         >
-          <span className="break-words white-space-pre-wrap">{message.message}</span>
+          <span className="wrap-break-word white-space-pre-wrap">{message.message}</span>
 
           {/* Render Attachments */}
           {message.attachments && message.attachments.length > 0 && (

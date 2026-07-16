@@ -69,12 +69,12 @@ export const OnboardingForm: React.FC<{ onOnboardingComplete: (startupId: string
       <div className="w-full max-w-xl liquid-glass p-8 rounded-2xl relative z-10">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold text-foreground">
               Configure Workspace
             </h1>
-            <p className="text-gray-400 text-xs mt-1">Bootstrapping StartupOps Tenant Container</p>
+            <p className="text-gray-400 text-xs mt-1">Bootstrapping Hive Tenant Container</p>
           </div>
-          <span className="text-xs bg-indigo-900/50 text-indigo-300 border border-indigo-500/25 px-2.5 py-1 rounded-full font-semibold">
+          <span className="text-xs bg-blue-500/10 text-blue-500 border border-blue-500/20 px-2.5 py-1 rounded-full font-semibold">
             STEP {step} OF 3
           </span>
         </div>

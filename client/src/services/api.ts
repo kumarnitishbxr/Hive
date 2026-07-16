@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { getApiBaseUrl } from '../lib/env';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -92,15 +93,7 @@ export const projectService = {
   createProject: (payload: any) => api.post('/projects', payload),
   getSprints: (projectId: string) => api.get(`/projects/sprints/${projectId}`),
   createSprint: (payload: any) => api.post('/projects/sprints', payload),
-  getSprintBurndown: (sprintId: string) => api.get(`/projects/sprints/${sprintId}/burndown`),
-  
-  getTasks: (query: { workspaceId?: string; projectId?: string; sprintId?: string }) => {
-    const params = new URLSearchParams(query as any).toString();
-    return api.get(`/projects/tasks?${params}`);
-  },
-  createTask: (payload: any) => api.post('/projects/tasks', payload),
-  updateTask: (id: string, payload: any) => api.patch(`/projects/tasks/${id}`, payload),
-  logTime: (payload: { taskId: string; hoursSpent: number; description?: string }) => api.post('/projects/tasks/log-time', payload)
+  getSprintBurndown: (sprintId: string) => api.get(`/projects/sprints/${sprintId}/burndown`)
 };
 
 // Customer Validation & Sentiment Feedback API
@@ -236,4 +229,3 @@ export const taskService = {
 };
 
 export default api;
-

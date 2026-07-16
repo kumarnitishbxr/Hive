@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Sun, Moon, Laptop, Check } from 'lucide-react';
-import { useTheme, Theme } from '../hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
+import type { Theme } from '../providers/ThemeProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const ThemeToggle: React.FC = () => {
@@ -74,7 +75,7 @@ export const ThemeToggle: React.FC = () => {
   const getActiveIcon = () => {
     if (theme === 'light') return <Sun size={17} />;
     if (theme === 'dark') return <Moon size={17} />;
-    return <Laptop size={17} />;
+    return resolvedTheme === 'dark' ? <Moon size={17} /> : <Sun size={17} />;
   };
 
   return (
@@ -86,7 +87,7 @@ export const ThemeToggle: React.FC = () => {
         type="button"
         onClick={() => setIsOpen(prev => !prev)}
         onKeyDown={handleKeyDown}
-        className="w-10 h-10 rounded-xl bg-white/5 border border-white/8 hover:border-white/15 dark:bg-white/5 dark:border-white/8 dark:hover:border-white/15 flex items-center justify-center text-gray-400 hover:text-white transition duration-200 cursor-pointer shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+        className="theme-panel w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 transition duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label="Toggle Theme Menu"
@@ -102,7 +103,7 @@ export const ThemeToggle: React.FC = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -8 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-36 origin-top-right rounded-2xl border border-white/8 bg-[#111827]/90 dark:bg-[#111827]/90 backdrop-blur-xl p-1.5 shadow-2xl z-50 focus:outline-none"
+            className="theme-panel absolute right-0 mt-2 w-40 origin-top-right rounded-2xl p-1.5 z-50 focus:outline-none"
             role="listbox"
             tabIndex={-1}
           >
@@ -121,14 +122,14 @@ export const ThemeToggle: React.FC = () => {
                     onMouseEnter={() => setFocusedIndex(idx)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer outline-none ${
                       isSelected 
-                        ? 'bg-indigo-600 text-white' 
+                        ? 'bg-blue-600 text-white shadow-sm' 
                         : isFocused 
-                          ? 'bg-white/5 text-white' 
-                          : 'text-gray-400 hover:text-gray-200'
+                          ? 'bg-muted text-foreground' 
+                          : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <Icon size={14} className={isSelected ? 'text-white' : 'text-gray-500'} />
+                      <Icon size={14} className={isSelected ? 'text-white' : 'text-muted-foreground'} />
                       <span>{opt.label}</span>
                     </div>
                     {isSelected && <Check size={12} className="text-white" />}

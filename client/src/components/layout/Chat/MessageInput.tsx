@@ -1,13 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Smile, 
-  Paperclip, 
-  Mic, 
-  MicOff, 
   Send, 
-  Sparkles, 
   X, 
-  Image as ImageIcon 
+  Paperclip
 } from 'lucide-react';
 import { MessageType } from '../../../store/slices/chatSlice';
 
@@ -26,15 +22,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const [text, setText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
-  const [attachments, setAttachments] = useState<any[]>([]);
   
   // Textarea ref for auto-grow
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Voice Recording simulation state
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const recordingTimer = useRef<any>(null);
 
   // Typing debounce timer
   const typingTimer = useRef<any>(null);
@@ -68,11 +58,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   const handleSend = () => {
-    if (!text.trim() && attachments.length === 0) return;
+    if (!text.trim()) return;
     
-    onSendMessage(text, attachments);
+    onSendMessage(text, []);
     setText('');
-    setAttachments([]);
     onClearReply();
     
     if (isTypingRef.current) {
@@ -89,73 +78,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
-  // Simulated AI Smart Replies
-  const triggerAiSmartReply = () => {
-    const smartReplies = [
-      "On it! Will update the Kanban board shortly.",
-      "Looks excellent, let's schedule an alignment sync.",
-      "Can we review this milestone progress today?",
-      "Perfect, I've shared the slide deck with the investor.",
-      "Understood. Let me look at the runway simulator changes.",
-      "Awesome, congratulations on the validation score!"
-    ];
-    const randomReply = smartReplies[Math.floor(Math.random() * smartReplies.length)];
-    setText(randomReply);
-  };
-
-  // Simulated File Uploads
-  const simulateFileUpload = (type: 'image' | 'pdf' | 'doc') => {
-    let mockFile = {};
-    if (type === 'image') {
-      mockFile = {
-        name: `screenshot_glow_${Date.now().toString().slice(-4)}.png`,
-        url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop',
-        fileType: 'image/png'
-      };
-    } else if (type === 'pdf') {
-      mockFile = {
-        name: `incorporation_draft_2026.pdf`,
-        url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-        fileType: 'application/pdf'
-      };
-    } else {
-      mockFile = {
-        name: `swot_audit_deck.docx`,
-        url: '#',
-        fileType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      };
-    }
-
-    setAttachments(prev => [...prev, mockFile]);
-  };
-
-  // Simulated Voice Notes
-  const toggleVoiceRecording = () => {
-    if (isRecording) {
-      // Stop recording
-      setIsRecording(false);
-      if (recordingTimer.current) clearInterval(recordingTimer.current);
-      
-      const mockVoiceNote = {
-        name: `voice_note_${new Date().toLocaleTimeString().replace(/:/g, '-')}.mp3`,
-        url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', // Dummy mp3 url
-        fileType: 'audio/mp3'
-      };
-      setAttachments(prev => [...prev, mockVoiceNote]);
-      setRecordingSeconds(0);
-    } else {
-      // Start recording
-      setIsRecording(true);
-      setRecordingSeconds(0);
-      recordingTimer.current = setInterval(() => {
-        setRecordingSeconds(s => s + 1);
-      }, 1000);
-    }
-  };
-
   useEffect(() => {
     return () => {
-      if (recordingTimer.current) clearInterval(recordingTimer.current);
       if (typingTimer.current) clearTimeout(typingTimer.current);
     };
   }, []);
@@ -178,61 +102,30 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           </button>
         </div>
       )}
-
-      {/* Attachment Badges Display */}
-      {attachments.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-1">
-          {attachments.map((file, idx) => (
-            <div key={idx} className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-900 border border-white/10 text-[11px] text-gray-300">
-              <span className="truncate max-w-[150px] font-medium">{file.name}</span>
-              <button 
-                onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
-                className="text-gray-500 hover:text-red-400 p-0.5 transition cursor-pointer"
-              >
-                <X size={10} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Input controls container */}
       <div className="flex items-end gap-2 bg-white/3 border border-white/8 focus-within:border-indigo-500/50 rounded-2xl px-3 py-1.5 transition-all">
         
-        {/* Attachment menu trigger */}
-        <div className="flex items-center gap-0.5 mb-0.5">
-          <button
-            onClick={() => simulateFileUpload('image')}
-            title="Attach Image"
-            className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-indigo-400 rounded-lg transition cursor-pointer"
-          >
-            <ImageIcon size={15} />
-          </button>
-          <button
-            onClick={() => simulateFileUpload('pdf')}
-            title="Attach Document/PDF"
-            className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-indigo-400 rounded-lg transition cursor-pointer"
-          >
-            <Paperclip size={15} />
-          </button>
-        </div>
-
         {/* Text Area Input */}
         <textarea
           ref={textareaRef}
           value={text}
           onChange={handleTextChange}
           onKeyDown={handleKeyPress}
-          disabled={isRecording}
           rows={1}
-          placeholder={isRecording ? `Recording Voice Note... (${recordingSeconds}s)` : "Type a message..."}
+          placeholder="Type a message..."
           className="flex-1 bg-transparent border-none outline-none text-xs text-white placeholder-gray-500 resize-none max-h-32 py-1.5 leading-relaxed"
           style={{ height: 'auto' }}
         />
 
         {/* Action icons row */}
         <div className="flex items-center gap-0.5 mb-0.5">
-          {/* Emoji Button */}
+          <span
+            title="File and voice attachments require a real media upload pipeline and are disabled in production mode."
+            className="p-1.5 text-gray-500 rounded-lg border border-white/5 cursor-not-allowed"
+          >
+            <Paperclip size={15} />
+          </span>
+
           <div className="relative">
             <button
               onClick={() => setShowEmoji(prev => !prev)}
@@ -259,33 +152,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               </div>
             )}
           </div>
-
-          {/* Voice Note Recording Trigger */}
-          <button
-            onClick={toggleVoiceRecording}
-            title={isRecording ? "Stop Voice Recording" : "Record Voice Note"}
-            className={`p-1.5 rounded-lg transition cursor-pointer ${
-              isRecording 
-                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
-                : 'hover:bg-white/5 text-gray-400 hover:text-gray-200'
-            }`}
-          >
-            {isRecording ? <MicOff size={15} /> : <Mic size={15} />}
-          </button>
-
-          {/* AI smart reply quick option */}
-          <button
-            onClick={triggerAiSmartReply}
-            title="AI Smart Reply Suggestion"
-            className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-indigo-400 rounded-lg transition cursor-pointer border border-white/5"
-          >
-            <Sparkles size={15} />
-          </button>
-
           {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={!text.trim() && attachments.length === 0}
+            disabled={!text.trim()}
             className="p-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:hover:bg-indigo-600 text-white shadow-lg transition cursor-pointer ml-1"
           >
             <Send size={13} />
