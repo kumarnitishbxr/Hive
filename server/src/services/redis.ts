@@ -18,8 +18,13 @@ if (config.redis.url && config.redis.url.startsWith('rediss://')) {
 }
 
 // Configure Redis Client
-export const redis = config.redis.url
-  ? new Redis(config.redis.url, redisOptions)
+const isValidRedisUrl = (url?: string) => {
+  if (!url) return false;
+  return url.startsWith('redis://') || url.startsWith('rediss://');
+};
+
+export const redis = isValidRedisUrl(config.redis.url)
+  ? new Redis(config.redis.url!, redisOptions)
   : new Redis({
       host: config.redis.host,
       port: config.redis.port,
