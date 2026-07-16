@@ -100,7 +100,7 @@ export const App: React.FC = () => {
           }));
         } catch (err: any) {
           console.error('Failed to sync user profile:', err);
-          if (err.response?.status === 401) {
+          if (err.response?.status === 401 || err.response?.status === 404 || err.response?.status === 403) {
             dispatch(logout());
           }
         }

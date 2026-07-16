@@ -14,6 +14,8 @@ const getHeaders = () => ({
   'x-workspace-id': localStorage.getItem('activeWorkspaceId') || ''
 });
 
+const EMPTY_CONVERSATIONS: IConversation[] = [];
+
 export const useChat = () => {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
@@ -37,13 +39,15 @@ export const useChat = () => {
   });
 
   // 1. Fetch AI Conversations History
-  const { data: conversations = [], isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['ai-conversations'],
     queryFn: async () => {
       const res = await axios.get(`${API_BASE_URL}/ai/conversations`, { headers: getHeaders() });
       return (res.data?.data?.conversations || []).map(mapConversation);
     },
   });
+
+  const conversations = data || EMPTY_CONVERSATIONS;
 
   // 2. Select conversation
   const selectConversation = (id: string | null) => {
