@@ -1,14 +1,14 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from './store';
-import { updateStartupContext, logout } from './store/slices/authSlice';
-import { setWorkspaces } from './store/slices/workspaceSlice';
+import { updateStartupContext, logout, setCredentials } from './store/slices/authSlice';
+import { resetWorkspaceState, setWorkspaces } from './store/slices/workspaceSlice';
 import AuthPages from './features/auth/AuthPages';
 import OnboardingForm from './features/onboarding/OnboardingForm';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import { Mail, Loader2, Sparkles } from 'lucide-react';
-import { teamManagementService, workspaceService } from './services/api';
+import { teamManagementService, workspaceService, authService } from './services/api';
 import useSocket from './hooks/useSocket';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Skeleton } from './components/Skeleton';
@@ -47,9 +47,9 @@ export const App: React.FC = () => {
   const dispatch = useDispatch();
   const auth = useSelector((state: RootState) => state.auth);
   const [showFloatingAi, setShowFloatingAi] = useState(false);
-  
+
   const isFounder = auth.role === 'Founder' || auth.role === 'Co-Founder';
-  
+
   // Navigation tabs state
   const [activeTab, setActiveTab] = useState(isFounder ? 'dashboard' : 'workforce-tasks');
 
@@ -79,9 +79,46 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
+    const syncUserProfile = async () => {
+      if (auth.isAuthenticated) {
+        try {
+          const res = await authService.getMe();
+          const { user, membership } = res.data.data;
+          dispatch(setCredentials({
+            token: auth.token || '',
+            user: {
+              id: user._id,
+              email: user.email,
+              fullName: user.fullName,
+              isVerified: user.isVerified,
+              firstLogin: user.firstLogin || false,
+              status: user.status,
+              invitationAccepted: user.invitationAccepted || false
+            },
+            startupId: membership ? membership.startupId : null,
+            role: membership ? membership.role : null
+          }));
+        } catch (err: any) {
+          console.error('Failed to sync user profile:', err);
+          if (err.response?.status === 401) {
+            dispatch(logout());
+          }
+        }
+      }
+    };
+    syncUserProfile();
+  }, [auth.isAuthenticated, dispatch]);
+
+  useEffect(() => {
     checkPendingInvitation();
     loadWorkspacesGlobally();
   }, [auth.isAuthenticated, auth.startupId]);
+
+  useEffect(() => {
+    if (!auth.startupId) {
+      dispatch(resetWorkspaceState());
+    }
+  }, [auth.startupId, dispatch]);
 
   const handleAcceptInvitation = async () => {
     setInvitationLoading(true);
@@ -117,17 +154,17 @@ export const App: React.FC = () => {
 
   // Redirect to correct default landing tab if role changes or if they are on a restricted tab
   useEffect(() => {
-    if (auth.isAuthenticated && auth.role) {
+    if (auth.isAuthenticated) {
       const isCurrentFounder = auth.role === 'Founder' || auth.role === 'Co-Founder';
       if (!isCurrentFounder && ['dashboard', 'validation', 'investors', 'documents'].includes(activeTab)) {
         setActiveTab('workforce-tasks');
       }
     }
   }, [auth.role, auth.isAuthenticated, activeTab]);
-  
+
   // Member profile drill-down state
   const [viewingMemberId, setViewingMemberId] = useState<string | null>(null);
-  
+
   // Force rerender trigger when authentication completes
   const [, setTick] = useState(0);
   const forceRerender = () => setTick(t => t + 1);

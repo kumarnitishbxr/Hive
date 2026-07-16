@@ -28,7 +28,7 @@ export const AIHeader: React.FC<AIHeaderProps> = ({
         )}
         
         {/* Glowing mini AI avatar */}
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shrink-0 shadow-md shadow-indigo-500/10">
+        <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shrink-0 shadow-md shadow-indigo-500/10">
           <Sparkles size={14} />
         </div>
 

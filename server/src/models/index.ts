@@ -9,10 +9,12 @@ export { Investor, PitchDeckTelemetry } from './CRM';
 export { DocumentModel, ActivityLog } from './Document';
 export { Channel } from './Communication';
 export { Conversation } from './Conversation';
+export { ConversationParticipant } from './ConversationParticipant';
 export { Message } from './Message';
+export { MessageStatus } from './MessageStatus';
 export { Notification } from './Notification';
 export { default as TaskHistory } from './TaskHistory';
 export { default as TaskComment } from './TaskComment';
 export { default as TaskActivity } from './TaskActivity';
 export { AIConversation, AIMemory, AIVectorStore } from './AI';
-
+export { Invitation, IdentityAuditLog } from './Invitation';

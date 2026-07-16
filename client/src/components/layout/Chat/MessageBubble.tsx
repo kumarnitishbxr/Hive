@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../store';
 import { MessageType } from '../../../store/slices/chatSlice';
 import { 
   FileText, 
@@ -7,7 +9,8 @@ import {
   Check, 
   CheckCheck, 
   Star, 
-  Pin 
+  Pin,
+  Edit3
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -15,7 +18,8 @@ interface MessageBubbleProps {
   message: MessageType;
   currentUserId: string;
   onReply: (message: MessageType) => void;
-  onDelete: (messageId: string) => void;
+  onDelete: (messageId: string, mode: 'everyone' | 'me') => void;
+  onEdit?: (message: MessageType) => void;
   isFirstInGroup?: boolean;
   isLastInGroup?: boolean;
 }
@@ -25,11 +29,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   currentUserId,
   onReply,
   onDelete,
+  onEdit,
   isFirstInGroup = true,
   isLastInGroup = true
 }) => {
   const [showOptions, setShowOptions] = useState(false);
+  const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   
+  const userRole = useSelector((state: RootState) => state.auth.role);
+  const isFounder = userRole === 'Founder' || userRole === 'Co-Founder';
+
   const sender = typeof message.senderId === 'object' ? message.senderId : null;
   const senderId = sender ? sender._id : (message.senderId as string);
   const isMe = senderId === currentUserId;
@@ -66,6 +75,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
+  const minutesElapsed = (Date.now() - new Date(message.createdAt).getTime()) / 60000;
+  const isWithinLimit = minutesElapsed <= 15;
+  const canDeleteForEveryone = isMe ? (isWithinLimit || isFounder) : isFounder;
+  const canEdit = isMe && (isWithinLimit || isFounder);
+
+  // Status mapping
+  const status = (message as any).status;
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
@@ -75,7 +92,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         isMe ? 'justify-end' : 'justify-start'
       } ${isFirstInGroup ? 'mt-3.5' : 'mt-1'}`}
       onMouseEnter={() => setShowOptions(true)}
-      onMouseLeave={() => setShowOptions(false)}
+      onMouseLeave={() => {
+        setShowOptions(false);
+        setShowDeleteMenu(false);
+      }}
     >
       {/* Col 1: Sender Avatar spacer (Only for incoming messages) */}
       {!isMe && (
@@ -172,8 +192,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {isMe && !message.deleted && (
             <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-white/50 self-end">
               <span>{formatTime(message.createdAt)}</span>
-              {message.seenBy.length > 1 ? (
+              {status === 'SEEN' || (status === undefined && message.seenBy && message.seenBy.length > 0) ? (
                 <CheckCheck size={11} className="text-cyan-400" />
+              ) : status === 'DELIVERED' ? (
+                <CheckCheck size={11} className="text-white/40" />
               ) : (
                 <Check size={11} className="text-white/40" />
               )}
@@ -201,6 +223,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           >
             <CornerUpLeft size={12} />
           </button>
+
+          {canEdit && onEdit && (
+            <button 
+              onClick={() => onEdit(message)}
+              title="Edit message"
+              className="p-1.5 hover:bg-white/5 text-gray-400 hover:text-indigo-400 rounded transition cursor-pointer"
+            >
+              <Edit3 size={12} />
+            </button>
+          )}
           
           <button 
             title="Star message"
@@ -216,15 +248,46 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             <Pin size={12} />
           </button>
 
-          {isMe && (
-            <button 
-              onClick={() => onDelete(message._id)}
-              title="Delete message"
-              className="p-1.5 hover:bg-red-950/30 text-gray-400 hover:text-red-400 rounded transition cursor-pointer"
+          <button 
+            onClick={() => setShowDeleteMenu(true)}
+            title="Delete message Options"
+            className="p-1.5 hover:bg-red-950/30 text-gray-400 hover:text-red-400 rounded transition cursor-pointer"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog Dropdown */}
+      {showDeleteMenu && (
+        <div className={`absolute z-40 bg-slate-900 border border-white/10 rounded-xl p-2 shadow-2xl flex flex-col gap-1 text-[11px] ${isMe ? 'right-12' : 'left-12'} top-0`}>
+          <p className="font-bold text-gray-400 px-2 py-1 select-none">Delete Message?</p>
+          <button
+            onClick={() => {
+              onDelete(message._id, 'me');
+              setShowDeleteMenu(false);
+            }}
+            className="w-full text-left px-3 py-1.5 hover:bg-white/5 rounded text-white font-semibold transition cursor-pointer"
+          >
+            Delete for Me
+          </button>
+          {canDeleteForEveryone && (
+            <button
+              onClick={() => {
+                onDelete(message._id, 'everyone');
+                setShowDeleteMenu(false);
+              }}
+              className="w-full text-left px-3 py-1.5 hover:bg-red-500/10 hover:text-red-400 rounded text-red-500 font-bold transition cursor-pointer"
             >
-              <Trash2 size={12} />
+              Delete for Everyone
             </button>
           )}
+          <button
+            onClick={() => setShowDeleteMenu(false)}
+            className="w-full text-left px-3 py-1.5 hover:bg-white/5 rounded text-gray-400 transition cursor-pointer"
+          >
+            Cancel
+          </button>
         </div>
       )}
     </motion.div>

@@ -121,10 +121,10 @@ const WorkforceTasks: React.FC = () => {
   const columns = ['Backlog', 'To Do', 'In Progress', 'Blocked', 'Under Review', 'Completed', 'Approved', 'Rejected'];
 
   return (
-    <div className="flex-grow flex flex-col h-full bg-slate-950/30 overflow-hidden p-6 max-w-7xl w-full mx-auto relative z-10 font-sans">
+    <div className="grow flex flex-col h-full bg-slate-950/30 overflow-hidden p-6 max-w-7xl w-full mx-auto relative z-10 font-sans">
       
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 flex-shrink-0">
+      <div className="flex items-center justify-between mb-6 shrink-0">
         <div>
           <h1 className="text-xl font-bold text-white flex items-center gap-2">
             <ListTodo className="text-indigo-400" /> My Workspace Dashboard
@@ -135,7 +135,7 @@ const WorkforceTasks: React.FC = () => {
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 flex-shrink-0 select-none">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 shrink-0 select-none">
         {[
           { label: 'Assigned Tasks', value: assignedCount, icon: ListTodo, color: 'indigo' },
           { label: 'Pending Iterations', value: pendingCount, icon: Clock, color: 'blue' },

@@ -202,7 +202,7 @@ const MemberProfile: React.FC<MemberProfileProps> = ({ memberId, onBack }) => {
             {member.avatarUrl ? (
               <img src={member.avatarUrl} alt="" className="w-20 h-20 rounded-2xl object-cover border-2 border-white/10" />
             ) : (
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-3xl font-bold text-white">
+              <div className="w-20 h-20 rounded-2xl bg-linear-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-3xl font-bold text-white">
                 {member.fullName.charAt(0)}
               </div>
             )}

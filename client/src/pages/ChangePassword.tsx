@@ -54,6 +54,19 @@ const ChangePassword: React.FC<ChangePasswordProps> = ({ onPasswordChanged }) =>
     setIsLoading(true);
     try {
       await authService.changePassword({ currentPassword, newPassword });
+      
+      // Update localStorage so reload starts with firstLogin: false
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr);
+          userObj.firstLogin = false;
+          localStorage.setItem('user', JSON.stringify(userObj));
+        } catch (e) {
+          console.error('Failed to update user in localStorage:', e);
+        }
+      }
+
       setSuccess(true);
       setTimeout(() => {
         onPasswordChanged();
@@ -166,11 +179,10 @@ const ChangePassword: React.FC<ChangePasswordProps> = ({ onPasswordChanged }) =>
                       <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= strength.score ? strength.color : 'bg-slate-700'}`} />
                     ))}
                   </div>
-                  <p className={`text-[10px] font-bold uppercase tracking-widest ${
-                    strength.label === 'Strong' ? 'text-emerald-400' :
-                    strength.label === 'Good' ? 'text-blue-400' :
-                    strength.label === 'Fair' ? 'text-amber-400' : 'text-red-400'
-                  }`}>
+                  <p className={`text-[10px] font-bold uppercase tracking-widest ${strength.label === 'Strong' ? 'text-emerald-400' :
+                      strength.label === 'Good' ? 'text-blue-400' :
+                        strength.label === 'Fair' ? 'text-amber-400' : 'text-red-400'
+                    }`}>
                     {strength.label}
                   </p>
                 </div>

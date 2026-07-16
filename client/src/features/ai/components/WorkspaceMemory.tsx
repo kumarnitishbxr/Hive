@@ -18,7 +18,7 @@ export const WorkspaceMemory: React.FC<WorkspaceMemoryProps> = ({
   return (
     <div className="space-y-4">
       {/* Persona card */}
-      <div className="p-3.5 rounded-xl border border-white/5 bg-white/[0.02] flex items-start gap-3">
+      <div className="p-3.5 rounded-xl border border-white/5 bg-white/2 flex items-start gap-3">
         <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
           <Brain size={14} />
         </div>
@@ -38,7 +38,7 @@ export const WorkspaceMemory: React.FC<WorkspaceMemoryProps> = ({
         <span className="text-[9px] text-gray-500 font-extrabold tracking-wider uppercase block ml-1">
           Preferences & Logs
         </span>
-        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-55 overflow-y-auto pr-1">
           {memoryItems.map((item, idx) => (
             <div
               key={idx}
@@ -46,7 +46,7 @@ export const WorkspaceMemory: React.FC<WorkspaceMemoryProps> = ({
               className={`p-2.5 rounded-xl border transition text-left cursor-pointer flex gap-2.5 ${
                 item.isFollowed 
                   ? 'bg-emerald-500/5 border-emerald-500/10 text-gray-500' 
-                  : 'bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04] text-gray-300'
+                  : 'bg-white/2 border-white/5 hover:border-white/10 hover:bg-white/4 text-gray-300'
               }`}
             >
               <div className="mt-0.5 shrink-0">

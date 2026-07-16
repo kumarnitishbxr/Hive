@@ -127,11 +127,11 @@ export const AiCoach: React.FC<AiCoachProps> = ({ isModalMode = false, onClose }
 
   return (
     <div className={`flex h-full w-full overflow-hidden bg-[#0B1120] text-gray-200 ${
-      isModalMode ? '' : 'border border-white/5 rounded-[24px] shadow-2xl'
+      isModalMode ? '' : 'border border-white/5 rounded-3xl shadow-2xl'
     }`}>
       
       {/* 1. Left Sidebar Panel (Visible on Desktop only: w-[300px]) */}
-      <div className="hidden md:block w-[300px] h-full shrink-0 border-r border-white/5">
+      <div className="hidden md:block w-75 h-full shrink-0 border-r border-white/5">
         <ConversationSidebar
           conversations={localConvos}
           activeConversationId={activeConversationId}
@@ -152,7 +152,7 @@ export const AiCoach: React.FC<AiCoachProps> = ({ isModalMode = false, onClose }
             onClick={() => setIsMobileDrawerOpen(false)}
           />
           {/* Slide out card */}
-          <div className="relative flex flex-col w-[280px] max-w-xs h-full bg-[#111827] shadow-2xl animate-fade-in border-r border-white/5">
+          <div className="relative flex flex-col w-70 max-w-xs h-full bg-[#111827] shadow-2xl animate-fade-in border-r border-white/5">
             <ConversationSidebar
               conversations={localConvos}
               activeConversationId={activeConversationId}
@@ -178,7 +178,7 @@ export const AiCoach: React.FC<AiCoachProps> = ({ isModalMode = false, onClose }
         />
 
         {/* Scrollable messages container or empty illustrations */}
-        <div className="flex-grow flex flex-col overflow-hidden min-h-0 relative">
+        <div className="grow flex flex-col overflow-hidden min-h-0 relative">
           {messages.length > 0 ? (
             <MessageList
               messages={messages}

@@ -202,7 +202,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   };
 
   return (
-    <div className={`w-full md:w-[300px] bg-[#111827] border-r border-white/5 flex flex-col h-full overflow-hidden shrink-0 select-none`}>
+    <div className={`w-full md:w-75 bg-[#111827] border-r border-white/5 flex flex-col h-full overflow-hidden shrink-0 select-none`}>
       {/* Sidebar Header Bar */}
       <div className="p-4 border-b border-white/5 flex flex-col gap-3 shrink-0">
         <button
@@ -225,7 +225,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
       </div>
 
       {/* Conversations scroll section */}
-      <div className="flex-grow overflow-y-auto p-2 space-y-4 custom-scrollbar min-h-0">
+      <div className="grow overflow-y-auto p-2 space-y-4 custom-scrollbar min-h-0">
         {/* Pinned Section */}
         {pinnedChats.length > 0 && (
           <div className="space-y-1">

@@ -191,7 +191,7 @@ export const WorkspaceEditor: React.FC = () => {
               />
               <button
                 onClick={handleUpdatePage}
-                className="px-4 py-1.5 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-md shadow-indigo-500/10"
+                className="px-4 py-1.5 bg-linear-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-md shadow-indigo-500/10"
               >
                 <Save size={13} /> Save Wiki
               </button>

@@ -12,13 +12,17 @@ interface MessageInputProps {
   replyToMessage: MessageType | null;
   onClearReply: () => void;
   onTyping: (isTyping: boolean) => void;
+  editingMessage: MessageType | null;
+  onClearEdit: () => void;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
   replyToMessage,
   onClearReply,
-  onTyping
+  onTyping,
+  editingMessage,
+  onClearEdit
 }) => {
   const [text, setText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
@@ -31,6 +35,18 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const isTypingRef = useRef(false);
 
   const emojis = ['👍', '❤️', '😂', '🎉', '🔥', '🚀', '👀', '🤔', '👏', '💯', '💡', '💻', '🤝', '✅', '⚠️'];
+
+  // Load editing message content when it changes
+  useEffect(() => {
+    if (editingMessage) {
+      setText(editingMessage.message);
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    } else {
+      setText('');
+    }
+  }, [editingMessage]);
 
   // Auto-grow effect for textarea
   useEffect(() => {
@@ -64,6 +80,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     setText('');
     onClearReply();
     
+    if (editingMessage) {
+      onClearEdit();
+    }
+    
     if (isTypingRef.current) {
       isTypingRef.current = false;
       onTyping(false);
@@ -85,7 +105,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, []);
 
   return (
-    <div className="p-3 border-t border-white/5 bg-slate-950/80 flex flex-col gap-2 relative z-30 flex-shrink-0">
+    <div className="p-3 border-t border-white/5 bg-slate-950/80 flex flex-col gap-2 relative z-30 shrink-0">
       
       {/* Reply Reference Preview Banner */}
       {replyToMessage && (
@@ -102,6 +122,23 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           </button>
         </div>
       )}
+
+      {/* Editing Reference Preview Banner */}
+      {editingMessage && (
+        <div className="flex items-center justify-between px-3 py-1.5 rounded bg-emerald-500/10 border-l-4 border-emerald-500 text-xs text-gray-300">
+          <div className="truncate">
+            <span className="font-bold text-emerald-400">Editing Message: </span>
+            <span className="italic">{editingMessage.message}</span>
+          </div>
+          <button 
+            onClick={onClearEdit}
+            className="p-0.5 text-gray-500 hover:text-white transition cursor-pointer"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Input controls container */}
       <div className="flex items-end gap-2 bg-white/3 border border-white/8 focus-within:border-indigo-500/50 rounded-2xl px-3 py-1.5 transition-all">
         

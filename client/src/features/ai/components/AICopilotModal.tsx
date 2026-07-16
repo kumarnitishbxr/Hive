@@ -51,13 +51,13 @@ export const AICopilotModal: React.FC<AICopilotModalProps> = ({ isOpen, onClose 
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', duration: 0.4 }}
-            className="relative w-full h-full sm:h-[85vh] sm:max-h-[85vh] sm:w-[90vw] md:w-[85vw] lg:w-[900px] bg-[#111827]/90 border border-white/10 sm:rounded-[24px] shadow-2xl flex flex-col overflow-hidden z-10 backdrop-blur-2xl text-white"
+            className="relative w-full h-full sm:h-[85vh] sm:max-h-[85vh] sm:w-[90vw] md:w-[85vw] lg:w-225 bg-[#111827]/90 border border-white/10 sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden z-10 backdrop-blur-2xl text-white"
             role="dialog"
             aria-modal="true"
             aria-labelledby="copilot-modal-title"
           >
             {/* Main AI Coach Panel inside the modal */}
-            <div className="flex-grow min-h-0 h-full w-full">
+            <div className="grow min-h-0 h-full w-full">
               <AiCoach isModalMode={true} onClose={onClose} />
             </div>
           </motion.div>

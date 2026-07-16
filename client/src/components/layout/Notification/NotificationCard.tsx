@@ -73,7 +73,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({ notification
       }`}
     >
       {/* Sender profile / Icon type */}
-      <div className="relative flex-shrink-0">
+      <div className="relative shrink-0">
         {senderAvatar ? (
           <img 
             src={senderAvatar} 
@@ -94,7 +94,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({ notification
       <div className="flex-1 min-w-0 space-y-0.5">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[11px] font-bold text-gray-200 truncate">{notification.title}</p>
-          <span className="text-[9px] text-gray-500 font-semibold flex-shrink-0">{formatTime(notification.createdAt)}</span>
+          <span className="text-[9px] text-gray-500 font-semibold shrink-0">{formatTime(notification.createdAt)}</span>
         </div>
         <p className="text-[10px] text-gray-400 leading-snug truncate-2-lines">
           {notification.description}
@@ -103,7 +103,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({ notification
 
       {/* Unread indicator dot */}
       {!notification.isRead && (
-        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 flex-shrink-0 animate-pulse" />
+        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0 animate-pulse" />
       )}
     </div>
   );

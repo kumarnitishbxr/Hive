@@ -37,6 +37,7 @@ export const ChatPage: React.FC = () => {
   const auth = useSelector((state: RootState) => state.auth);
   const chatState = useSelector((state: RootState) => state.chat);
   const userState = useSelector((state: RootState) => state.user);
+  const workspaceId = useSelector((state: RootState) => state.workspace.activeWorkspaceId);
 
   const { sendTyping, sendSeen } = useSocket();
 
@@ -48,11 +49,12 @@ export const ChatPage: React.FC = () => {
   const [showSearchBox, setShowSearchBox] = useState(false);
   const [messageSearchQuery, setMessageSearchQuery] = useState('');
   const [replyingTo, setReplyingTo] = useState<MessageType | null>(null);
+  const [editingMessage, setEditingMessage] = useState<MessageType | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  const { data: conversations = [] } = useConversations();
+  const { data: conversations = [] } = useConversations(workspaceId);
 
   // Use React Query for loading messages
   const { 
@@ -67,15 +69,11 @@ export const ChatPage: React.FC = () => {
   // Fetch messages when active conversation changes
   useEffect(() => {
     if (chatState.activeConversationId) {
-      sendSeen(chatState.activeConversationId);
-      // Find conversation details from react-query cache instead of unpopulated redux slice
-      const convoObj = conversations.find((c: any) => c._id === chatState.activeConversationId);
-      if (convoObj) {
-        setActiveConvo(convoObj);
-      }
-    } else {
-      setActiveConvo(null);
+      refetchMessages();
     }
+    // Update recipient details
+    const active = conversations.find(c => c._id === chatState.activeConversationId);
+    setActiveConvo(active || null);
   }, [chatState.activeConversationId, conversations]);
 
   // Scroll to bottom on new message
@@ -83,10 +81,34 @@ export const ChatPage: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeMessages]);
 
+  // Mark active conversation messages as read when active conversation or messages list changes
+  useEffect(() => {
+    if (!chatState.activeConversationId) return;
+
+    // Trigger API read receipt update in DB
+    chatService.markRead(chatState.activeConversationId)
+      .then(() => {
+        // Invalidate query to update unread status across navigation list
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      })
+      .catch(err => console.error('Error marking conversation read:', err));
+
+    // Emit live socket event to update active participants' blue ticks
+    sendSeen(chatState.activeConversationId);
+
+  }, [chatState.activeConversationId, activeMessages.length, queryClient]);
+
   const handleSendMessage = async (text: string, attachments: any[]) => {
     if (!chatState.activeConversationId) return;
 
     try {
+      if (editingMessage) {
+        await chatService.editMessage(editingMessage._id, text);
+        queryClient.invalidateQueries({ queryKey: ['messages', chatState.activeConversationId] });
+        setEditingMessage(null);
+        return;
+      }
+
       const workspaceId = localStorage.getItem('activeWorkspaceId') || '';
       
       const payload = {
@@ -104,9 +126,9 @@ export const ChatPage: React.FC = () => {
     }
   };
 
-  const handleDeleteMessage = async (messageId: string) => {
+  const handleDeleteMessage = async (messageId: string, mode: 'everyone' | 'me') => {
     try {
-      await chatService.deleteMessage(messageId);
+      await chatService.deleteMessage(messageId, mode);
       queryClient.invalidateQueries({ queryKey: ['messages', chatState.activeConversationId] });
     } catch (err) {
       console.error('Failed to delete message:', err);
@@ -283,6 +305,7 @@ export const ChatPage: React.FC = () => {
                             currentUserId={auth.user?.id || ''}
                             onReply={setReplyingTo}
                             onDelete={handleDeleteMessage}
+                            onEdit={setEditingMessage}
                             isFirstInGroup={isFirstInGroup}
                             isLastInGroup={isLastInGroup}
                           />
@@ -315,6 +338,8 @@ export const ChatPage: React.FC = () => {
               replyToMessage={replyingTo}
               onClearReply={() => setReplyingTo(null)}
               onTyping={handleTyping}
+              editingMessage={editingMessage}
+              onClearEdit={() => setEditingMessage(null)}
             />
           </>
         ) : (

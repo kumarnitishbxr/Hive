@@ -27,7 +27,7 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
   const userState = useSelector((state: RootState) => state.user);
   const workspaceId = useSelector((state: RootState) => state.workspace.activeWorkspaceId);
   
-  const { data: conversations = [], isLoading: isConvosLoading } = useConversations();
+  const { data: conversations = [], isLoading: isConvosLoading } = useConversations(workspaceId);
   const { data: teamData } = useTeamData();
   const teamMembers = teamData?.members || [];
 
@@ -51,15 +51,11 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
   // Start a new Direct Message conversation
   const startDirectChat = async (recipientId: string) => {
     try {
-      const res = await chatService.sendMessage({
-        recipientId,
-        message: 'Started conversation',
-        attachments: []
-      });
+      const res = await chatService.createPrivateChat(recipientId);
       
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       
-      const conversationId = res.data.conversationId;
+      const conversationId = res.data._id;
       dispatch(setActiveConversationId(conversationId));
       onSelectConversation(conversationId);
       
@@ -74,15 +70,12 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
   const startGroupChat = async () => {
     if (!groupName.trim()) return;
     try {
-      const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null;
-      const participants = [...selectedUserIds, user.id];
-      
-      const res = await apiCreateGroupConversation(groupName, groupDescription, participants);
+      const res = await chatService.createGroupChat(groupName, groupDescription, selectedUserIds);
       
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       
-      dispatch(setActiveConversationId(res._id));
-      onSelectConversation(res._id);
+      dispatch(setActiveConversationId(res.data._id));
+      onSelectConversation(res.data._id);
       
       setShowCreateModal(false);
       setGroupName('');
@@ -91,48 +84,6 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
     } catch (err) {
       console.error('Failed to create group channel:', err);
     }
-  };
-
-  // Direct group chat creation helper via raw send
-  const apiCreateGroupConversation = async (name: string, desc: string, userIds: string[]) => {
-    const token = localStorage.getItem('token');
-    const startupId = localStorage.getItem('startupId');
-    const activeWorkspaceId = workspaceId || '';
-    const baseApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5100/api';
-    
-    const response = await fetch(`${baseApiUrl}/chat/send`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'x-startup-id': startupId || '',
-        'x-workspace-id': activeWorkspaceId
-      },
-      body: JSON.stringify({
-        message: `Welcome to the new channel #${name}. ${desc}`,
-        attachments: [],
-        workspaceId: activeWorkspaceId
-      })
-    });
-    
-    const initialMsg = await response.json();
-    const convoId = initialMsg.conversationId;
-    
-    await fetch(`${baseApiUrl}/chat/conversations/${convoId}/update-group`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        name,
-        description: desc,
-        participants: userIds,
-        type: 'group'
-      })
-    });
-    
-    return { _id: convoId };
   };
 
   // Filters conversations based on query
@@ -379,12 +330,12 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
               
               <div className="max-h-48 overflow-y-auto divide-y divide-white/5 border border-white/5 rounded-lg">
                 {teamMembers
-                  .filter((u: any) => u._id !== auth.user?.id && u.fullName.toLowerCase().includes(searchMemberQuery.toLowerCase()))
+                  .filter((u: any) => u.userId !== auth.user?.id && u.fullName.toLowerCase().includes(searchMemberQuery.toLowerCase()))
                   .map((user: any) => {
-                    const isSelected = selectedUserIds.includes(user._id);
+                    const isSelected = selectedUserIds.includes(user.userId);
                     return (
                       <div 
-                        key={user._id}
+                        key={user.userId}
                         className="flex items-center justify-between p-2 hover:bg-white/2 text-xs"
                       >
                         <div className="flex items-center gap-2">
@@ -403,7 +354,7 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
                         
                         {modalType === 'direct' ? (
                           <button
-                            onClick={() => startDirectChat(user._id)}
+                            onClick={() => startDirectChat(user.userId)}
                             className="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[10px] transition cursor-pointer"
                           >
                             Chat
@@ -414,7 +365,7 @@ export const ChatList: React.FC<ChatListProps> = ({ onSelectConversation }) => {
                             checked={isSelected}
                             onChange={() => {
                               setSelectedUserIds(prev => 
-                                isSelected ? prev.filter(id => id !== user._id) : [...prev, user._id]
+                                isSelected ? prev.filter(id => id !== user.userId) : [...prev, user.userId]
                               );
                             }}
                             className="rounded border-white/10 text-indigo-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer"

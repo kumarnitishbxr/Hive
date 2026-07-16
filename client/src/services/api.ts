@@ -62,6 +62,7 @@ api.interceptors.response.use(
 export const authService = {
   register: (payload: any) => api.post('/auth/register', payload),
   verifyOtp: (payload: any) => api.post('/auth/verify-otp', payload),
+  verifyInvitation: (token: string) => api.get(`/auth/verify-invitation?token=${encodeURIComponent(token)}`),
   login: (payload: any) => api.post('/auth/login', payload),
   getMe: () => api.get('/auth/me'),
   inviteTeam: (payload: any) => api.post('/auth/invite', payload),
@@ -148,10 +149,11 @@ export const aiService = {
 
 // Workspace Chat & Communications API
 export const chatService = {
-  getConversations: () => api.get('/chat/conversations'),
+  getConversations: (workspaceId?: string | null) => 
+    api.get('/chat/conversations', workspaceId ? { headers: { 'x-workspace-id': workspaceId } } : {}),
   getMembers: () => api.get('/chat/members'),
   getMessages: (conversationId: string, limit?: number, before?: string) => {
-    let url = `/chat/messages/${conversationId}`;
+    let url = `/chat/${conversationId}`;
     const params = new URLSearchParams();
     if (limit) params.append('limit', limit.toString());
     if (before) params.append('before', before);
@@ -159,10 +161,28 @@ export const chatService = {
     if (queryStr) url += `?${queryStr}`;
     return api.get(url);
   },
-  sendMessage: (payload: { conversationId?: string; recipientId?: string; message: string; attachments?: any[]; replyTo?: string }) => 
-    api.post('/chat/send', payload),
-  markSeen: (conversationId: string) => api.patch('/chat/seen', { conversationId }),
-  deleteMessage: (messageId: string) => api.delete('/chat/message', { data: { messageId } })
+  createPrivateChat: (recipientId: string) => api.post('/chat/private', { recipientId }),
+  createGroupChat: (name: string, description: string, participants: string[]) => 
+    api.post('/chat/group', { name, description, participants }),
+  sendMessage: (payload: { conversationId?: string; recipientId?: string; message?: string; content?: string; attachments?: any[]; replyTo?: string }) => {
+    // Adapter to transform old client-side payload structure if any component calls it that way
+    const content = payload.content || payload.message || '';
+    return api.post('/chat/message', {
+      conversationId: payload.conversationId,
+      content,
+      replyTo: payload.replyTo
+    });
+  },
+  editMessage: (id: string, content: string) => api.patch(`/chat/message/${id}`, { content }),
+  deleteMessage: (messageId: string, mode: 'everyone' | 'me' = 'everyone') => 
+    api.delete(`/chat/message/${messageId}`, { data: { mode } }),
+  deleteConversation: (id: string) => api.delete(`/chat/conversation/${id}`),
+  markRead: (conversationId: string) => api.patch('/chat/read', { conversationId }),
+  markSeen: (conversationId: string) => api.patch('/chat/read', { conversationId }),
+  archiveConversation: (conversationId: string, isArchived: boolean) => api.patch('/chat/archive', { conversationId, isArchived }),
+  removeMember: (conversationId: string, targetUserId: string) => api.patch('/chat/remove-member', { conversationId, targetUserId }),
+  addMember: (conversationId: string, targetUserId: string) => api.patch('/chat/add-member', { conversationId, targetUserId }),
+  searchChat: (query: string) => api.get(`/chat/search?query=${encodeURIComponent(query)}`)
 };
 
 
@@ -177,15 +197,20 @@ export const notificationService = {
 
 // Team Management API
 export const teamManagementService = {
-  inviteMember: (payload: { fullName: string; email: string; role: string; departmentId?: string; designation?: string; phone?: string; joiningDate?: string; skills?: string[]; employmentType?: string }) => 
+  inviteMember: (payload: { fullName: string; email: string; role: string; department?: string; designation?: string; phone?: string; joiningDate?: string; skills?: string[]; employmentType?: string; manager?: string; notes?: string }) => 
     api.post('/team/invite', payload),
   getMembers: () => api.get('/team/members'),
   changeRole: (payload: { memberId: string; role: string }) => api.patch('/team/change-role', payload),
-  removeMember: (memberId: string) => api.delete('/team/remove', { data: { memberId } }),
+  removeMember: (memberId: string, reason?: string) => api.delete('/team/remove', { data: { memberId, reason } }),
+  suspendMember: (memberId: string, reason?: string) => api.patch('/team/suspend', { memberId, reason }),
+  reactivateMember: (memberId: string) => api.patch('/team/reactivate', { memberId }),
+  resetPassword: (memberId: string) => api.post('/team/reset-password', { memberId }),
   resendInvite: (invitationId: string) => api.post('/team/resend-invite', { invitationId }),
+  cancelInvite: (invitationId: string) => api.post('/team/cancel-invite', { invitationId }),
   getMyPendingInvitation: () => api.get('/team/my-pending-invitation'),
   acceptInvite: () => api.post('/team/accept-invite'),
-  declineInvite: () => api.post('/team/decline-invite')
+  declineInvite: () => api.post('/team/decline-invite'),
+  getAuditLogs: () => api.get('/team/audit-logs')
 };
 
 // Workforce Task Tracking API

@@ -357,13 +357,15 @@ export const useResendInvite = () => {
 // ==========================================
 // AI & ANALYTICS
 // ==========================================
-export const useAiHealthReport = () => {
+export const useAiHealthReport = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ['ai-health'],
     queryFn: async () => {
       const res = await aiService.getHealthReport();
       return res.data;
     },
+    enabled,
+    retry: false,
     staleTime: 1000 * 60 * 5,
   });
 };
@@ -506,13 +508,14 @@ export const useDeleteDocument = () => {
 // ==========================================
 // CHAT / MESSAGING
 // ==========================================
-export const useConversations = () => {
+export const useConversations = (workspaceId: string | null) => {
   return useQuery({
-    queryKey: ['conversations'],
+    queryKey: ['conversations', workspaceId],
     queryFn: async () => {
-      const res = await chatService.getConversations();
+      const res = await chatService.getConversations(workspaceId);
       return res.data || [];
     },
+    enabled: !!workspaceId,
     staleTime: 1000 * 60 * 5,
   });
 };
@@ -657,4 +660,3 @@ export const useUpdateInvestor = () => {
     }
   });
 };
-

@@ -4,6 +4,15 @@ import { Member } from '../models/User';
 import config from '../config';
 
 const JWT_SECRET = config.jwtSecret;
+const USABLE_MEMBERSHIP_STATUSES = ['Active', 'Invited', 'Suspended'] as const;
+
+const buildUsableMembershipFilter = () => ({
+  $or: [
+    { status: { $in: [...USABLE_MEMBERSHIP_STATUSES] } },
+    { status: { $exists: false } },
+    { status: null }
+  ]
+});
 
 export interface TokenPayload {
   id: string;
@@ -50,11 +59,34 @@ export const tenantIsolated = async (req: Request, res: Response, next: NextFunc
     // Try to retrieve the startupId from request headers or query params
     const startupId = req.headers['x-startup-id'] as string || req.query.startupId as string || req.body.startupId as string;
 
+    const invitedOnlyPaths = new Set([
+      '/api/team/my-pending-invitation',
+      '/api/team/accept-invite',
+      '/api/team/decline-invite'
+    ]);
+
+    const ensureMembershipIsUsable = (status?: string | null) => {
+      if (status === 'Suspended') {
+        return 'Your workspace membership is suspended.';
+      }
+      if (status === 'Invited' && !invitedOnlyPaths.has(req.originalUrl.split('?')[0])) {
+        return 'Invitation acceptance is required before accessing the workspace.';
+      }
+      return null;
+    };
+
     if (!startupId) {
       // Find the first member startup this user belongs to
-      const memberRecord = await Member.findOne({ userId: req.user.id });
+      const memberRecord = await Member.findOne({
+        userId: req.user.id,
+        ...buildUsableMembershipFilter()
+      }).sort({ createdAt: -1 });
       if (!memberRecord) {
         return res.status(403).json({ error: 'User is not associated with any startup workspace. Please complete onboarding.' });
+      }
+      const unusableReason = ensureMembershipIsUsable(memberRecord.status);
+      if (unusableReason) {
+        return res.status(403).json({ error: unusableReason });
       }
       req.startupId = memberRecord.startupId.toString();
       req.role = memberRecord.role;
@@ -62,9 +94,17 @@ export const tenantIsolated = async (req: Request, res: Response, next: NextFunc
     }
 
     // Verify membership of the user in the target startup
-    const memberRecord = await Member.findOne({ userId: req.user.id, startupId });
+    const memberRecord = await Member.findOne({
+      userId: req.user.id,
+      startupId,
+      ...buildUsableMembershipFilter()
+    });
     if (!memberRecord) {
       return res.status(403).json({ error: 'Access Denied: You do not belong to this startup tenant' });
+    }
+    const unusableReason = ensureMembershipIsUsable(memberRecord.status);
+    if (unusableReason) {
+      return res.status(403).json({ error: unusableReason });
     }
 
     req.startupId = memberRecord.startupId.toString();

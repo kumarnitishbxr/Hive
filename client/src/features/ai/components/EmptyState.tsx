@@ -42,7 +42,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       
       {/* Animated Glowing AI Icon */}
       <div className="relative">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-xl shadow-indigo-500/25">
+        <div className="w-14 h-14 rounded-2xl bg-linear-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-xl shadow-indigo-500/25">
           <Sparkles size={24} className="animate-pulse" />
         </div>
         <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-[#0B1120] rounded-full" />

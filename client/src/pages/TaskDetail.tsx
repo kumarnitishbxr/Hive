@@ -320,7 +320,7 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ taskId, onBack }) => {
 
                 {task.dependencies && task.dependencies.length > 0 && (
                   <div className="liquid-glass p-4 rounded-xl border border-white/5 bg-slate-950/20 space-y-2">
-                    <h4 className="text-[10px] text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1 text-amber-400">
+                    <h4 className="text-[10px] text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1">
                       <AlertTriangle size={10} /> Blocking Dependencies ({task.dependencies.length})
                     </h4>
                     <div className="space-y-1.5 text-xs text-gray-300">
@@ -494,7 +494,7 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ taskId, onBack }) => {
                     {activities.map((a: any) => (
                       <div key={a._id} className="relative text-xs">
                         {/* Dot indicator */}
-                        <div className="absolute -left-[30px] top-0.5 w-2 h-2 rounded-full bg-indigo-500 border border-slate-950 ring-4 ring-indigo-500/20" />
+                        <div className="absolute -left-7.5 top-0.5 w-2 h-2 rounded-full bg-indigo-500 border border-slate-950 ring-4 ring-indigo-500/20" />
                         
                         <div className="flex justify-between items-center text-[10px] text-gray-500 font-mono mb-1">
                           <span>{new Date(a.createdAt).toLocaleString()}</span>

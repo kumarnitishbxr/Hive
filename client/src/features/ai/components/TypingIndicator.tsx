@@ -9,7 +9,7 @@ export const TypingIndicator: React.FC = () => {
       </div>
 
       {/* Bubble with loading skeletons */}
-      <div className="p-4 rounded-2xl bg-[#161E2E] border border-white/5 flex flex-col gap-2.5 w-[280px]">
+      <div className="p-4 rounded-2xl bg-[#161E2E] border border-white/5 flex flex-col gap-2.5 w-70">
         {/* Animated pulsing bars */}
         <div className="flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:-0.3s]" />

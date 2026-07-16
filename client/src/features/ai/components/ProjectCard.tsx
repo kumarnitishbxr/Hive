@@ -37,7 +37,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           <span className="text-white font-extrabold">{progress}%</span>
         </div>
         <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full transition-all duration-500" style={{ width: `${progress}%` }} />
+          <div className="bg-linear-to-r from-indigo-500 to-purple-500 h-full transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
       </div>
 

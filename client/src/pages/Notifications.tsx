@@ -109,7 +109,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ onNavigate
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 py-4 flex-shrink-0">
+      <div className="flex items-center gap-2 py-4 shrink-0">
         <button
           onClick={() => setFilterUnreadOnly(false)}
           className={`px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer outline-none ${
@@ -151,7 +151,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ onNavigate
                       <div 
                         key={notif._id}
                         onClick={() => handleNotificationClick(notif)}
-                        className="cursor-pointer hover:bg-white/[0.01] transition"
+                        className="cursor-pointer hover:bg-white/1 transition"
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => {
@@ -181,7 +181,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ onNavigate
                       <div 
                         key={notif._id}
                         onClick={() => handleNotificationClick(notif)}
-                        className="cursor-pointer hover:bg-white/[0.01] transition"
+                        className="cursor-pointer hover:bg-white/1 transition"
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => {
@@ -211,7 +211,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ onNavigate
                       <div 
                         key={notif._id}
                         onClick={() => handleNotificationClick(notif)}
-                        className="cursor-pointer hover:bg-white/[0.01] transition"
+                        className="cursor-pointer hover:bg-white/1 transition"
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => {

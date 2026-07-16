@@ -119,7 +119,15 @@ const chatSlice = createSlice({
       }
       
       // Update unread count if it's not the active conversation and not sent by current user
-      const currentUserId = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).id : null;
+      let currentUserId = null;
+      try {
+        const u = localStorage.getItem('user');
+        if (u && u !== 'undefined' && u !== 'null') {
+          currentUserId = JSON.parse(u).id;
+        }
+      } catch (e) {
+        console.error('Error parsing user in chatSlice:', e);
+      }
       const senderId = typeof msg.senderId === 'object' ? msg.senderId._id : msg.senderId;
 
       if (convoId !== state.activeConversationId && senderId !== currentUserId) {

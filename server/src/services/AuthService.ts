@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { Member } from '../models/User';
 import { UserRepository } from '../repositories/UserRepository';
 import { MemberRepository } from '../repositories/MemberRepository';
 import AppError from '../utils/AppError';
@@ -16,9 +17,6 @@ export class AuthService {
     this.memberRepo = new MemberRepository();
   }
 
-  /**
-   * Register a new user and generate a verification OTP
-   */
   async register(email: string, passwordHashRaw: string, fullName: string) {
     const existingUser = await this.userRepo.findByEmail(email);
     if (existingUser) {
@@ -27,7 +25,7 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(passwordHashRaw, 10);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+    const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
     const user = await this.userRepo.create({
       email,
@@ -36,16 +34,14 @@ export class AuthService {
       isVerified: false,
       verificationOtp: otp,
       otpExpiry,
+      invitationAccepted: true,
       status: 'Onboarding'
     });
 
     console.log(`[OTP Verification] User: ${email}, OTP: ${otp}`);
-    return { email };
+    return { email: user.email };
   }
 
-  /**
-   * Verify verification OTP and generate JWT token
-   */
   async verifyOtp(email: string, otp: string) {
     const user = await this.userRepo.findByEmail(email);
     if (!user) {
@@ -74,14 +70,14 @@ export class AuthService {
         id: user._id,
         email: user.email,
         fullName: user.fullName,
-        isVerified: user.isVerified
+        isVerified: user.isVerified,
+        firstLogin: user.firstLogin || false,
+        status: user.status,
+        invitationAccepted: user.invitationAccepted || false
       }
     };
   }
 
-  /**
-   * Authenticate credentials and login user
-   */
   async login(email: string, passwordRaw: string) {
     const user = await this.userRepo.findOne({ email });
     if (!user || !user.passwordHash) {
@@ -96,6 +92,12 @@ export class AuthService {
     if (!user.isVerified) {
       throw new AppError('Email is not verified. Please verify your OTP.', 403);
     }
+    if (user.status === 'Suspended') {
+      throw new AppError('This account is suspended. Contact your workspace administrator.', 403);
+    }
+    if (user.status === 'Removed') {
+      throw new AppError('This account has been removed.', 403);
+    }
 
     const token = jwt.sign(
       { id: user._id, email: user.email, fullName: user.fullName },
@@ -103,7 +105,10 @@ export class AuthService {
       { expiresIn: '7d' }
     );
 
-    const memberRecord = await this.memberRepo.findByUserId(user._id.toString());
+    const memberRecord = await Member.findOne({
+      userId: user._id,
+      status: { $ne: 'Removed' }
+    }).sort({ createdAt: -1 });
 
     return {
       token,
@@ -111,23 +116,23 @@ export class AuthService {
         id: user._id,
         email: user.email,
         fullName: user.fullName,
-        isVerified: user.isVerified
+        isVerified: user.isVerified,
+        firstLogin: user.firstLogin || false,
+        status: user.status,
+        invitationAccepted: user.invitationAccepted || false
       },
       startupId: memberRecord ? memberRecord.startupId : null,
       role: memberRecord ? memberRecord.role : null
     };
   }
 
-  /**
-   * Get user profile along with membership details
-   */
   async getProfile(userId: string) {
     const user = await this.userRepo.findById(userId, '', '-passwordHash');
     if (!user) {
       throw new AppError('User not found.', 404);
     }
 
-    const memberRecord = await this.memberRepo.findOne({ userId: user._id }, 'startupId');
+    const memberRecord = await this.memberRepo.findOne({ userId: user._id }, '', 'startupId role');
 
     return {
       user,
@@ -135,35 +140,34 @@ export class AuthService {
     };
   }
 
-  /**
-   * Invite team member and create active member record
-   */
   async inviteTeam(email: string, role: any, departmentId: string, startupId: string) {
-    let user = await this.userRepo.findByEmail(email);
+    throw new AppError('Use the /team/invite workflow for production invitations.', 410);
+  }
+
+  async changePassword(userId: string, currentPasswordRaw: string, newPasswordRaw: string) {
+    const user = await this.userRepo.findById(userId);
     if (!user) {
-      user = await this.userRepo.create({
-        email,
-        fullName: email.split('@')[0],
-        isVerified: true, // auto-verified for invites
-        status: 'Active'
-      });
+      throw new AppError('User not found.', 404);
     }
 
-    const existingMember = await this.memberRepo.findByUserIdAndStartupId(user._id.toString(), startupId);
-    if (existingMember) {
-      throw new AppError('User is already a member of this startup.', 400);
+    if (!user.passwordHash) {
+      throw new AppError('Password login is not configured for this user.', 400);
     }
 
-    const member = await this.memberRepo.create({
-      startupId: startupId as any,
-      userId: user._id as any,
-      role,
-      departmentId: departmentId as any,
-      permissions: ['read', 'write']
-    });
+    const isMatch = await bcrypt.compare(currentPasswordRaw, user.passwordHash);
+    if (!isMatch) {
+      throw new AppError('Incorrect current or temporary password.', 400);
+    }
 
-    console.log(`[Invite System] Sent invite link to ${email} with role: ${role}`);
-    return member;
+    const newPasswordHash = await bcrypt.hash(newPasswordRaw, 10);
+    user.passwordHash = newPasswordHash;
+    user.firstLogin = false;
+    if (user.status === 'Invited') {
+      user.status = 'Active';
+    }
+    await user.save();
+
+    return { success: true };
   }
 }
 

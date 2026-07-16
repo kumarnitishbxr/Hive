@@ -21,14 +21,25 @@ const Team: React.FC<TeamPageProps> = ({ onViewMember }) => {
   const auth = useSelector((state: RootState) => state.auth);
   const isFounder = auth.role === 'Founder' || auth.role === 'Co-Founder';
 
+  const onlineUserIds = useSelector((state: RootState) => state.user.onlineUserIds);
   const rawMembers = teamData?.members || [];
-  const members = rawMembers.filter((m: any) => m.role !== 'Mentor');
-  const mentors = rawMembers.filter((m: any) => m.role === 'Mentor');
+  const members = rawMembers
+    .filter((m: any) => m.role !== 'Mentor')
+    .map((m: any) => ({
+      ...m,
+      isOnline: onlineUserIds.includes(m.userId)
+    }));
+  const mentors = rawMembers
+    .filter((m: any) => m.role === 'Mentor')
+    .map((m: any) => ({
+      ...m,
+      isOnline: onlineUserIds.includes(m.userId)
+    }));
   const invitations = (teamData?.invitations || []).map((inv: any) => ({
     _id: inv._id,
-    name: inv.name,
-    email: inv.email,
-    role: inv.role,
+    name: inv.name || inv.fullName || 'Member',
+    email: inv.email || '',
+    role: inv.role || 'Team Member',
     status: inv.status,
     sentDate: inv.createdAt,
     expiresAt: inv.expiresAt,
@@ -557,7 +568,7 @@ const Team: React.FC<TeamPageProps> = ({ onViewMember }) => {
               <div key={inv._id} className="bg-slate-900/40 border border-white/5 rounded-xl px-5 py-3.5 flex items-center justify-between hover:border-white/10 transition">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-gray-400">
-                    {inv.name.charAt(0)}
+                    {(inv.name || 'M').charAt(0)}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-white">{inv.name}</p>

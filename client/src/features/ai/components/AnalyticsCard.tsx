@@ -50,7 +50,7 @@ export const AnalyticsCard: React.FC<AnalyticsCardProps> = ({
         {/* Metric 3 */}
         <div className="p-3 bg-white/2 border border-white/5 rounded-xl space-y-1">
           <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">Sprint Velocity</span>
-          <p className="text-xl font-black text-white flex items-baseline gap-1 text-indigo-400">
+          <p className="text-xl font-black text-white flex items-baseline gap-1">
             {velocity} <span className="text-[9px] text-gray-500 font-bold">pts</span>
           </p>
         </div>

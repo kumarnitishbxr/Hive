@@ -40,11 +40,11 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
   );
 
   return (
-    <header className="h-[72px] border-b border-border bg-[color:var(--surface-elevated)] backdrop-blur-xl flex items-center justify-between px-6 z-40 flex-shrink-0 transition-all duration-150">
+    <header className="h-18 border-b border-border bg-(--surface-elevated) backdrop-blur-xl flex items-center justify-between px-6 z-40 shrink-0 transition-all duration-150">
       {/* Command Palette Trigger */}
       <button 
         onClick={() => setShowPalette(true)}
-        className="flex items-center gap-3 bg-[color:var(--surface-strong)] border border-border hover:border-primary/25 hover:bg-card px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground transition duration-150 cursor-pointer w-72 focus:outline-none"
+        className="flex items-center gap-3 bg-(--surface-strong) border border-border hover:border-primary/25 hover:bg-card px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground transition duration-150 cursor-pointer w-72 focus:outline-none"
       >
         <Search size={14} className="text-muted-foreground" />
         <span className="flex-1 text-left">Search or run command...</span>
@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
         {/* Central Theme Toggle Switcher */}
         <ThemeToggle />
         
-        <div className="h-5 w-[1px] bg-border dark:bg-[rgba(255,255,255,0.08)]" />
+        <div className="h-5 w-px bg-border dark:bg-[rgba(255,255,255,0.08)]" />
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">WORKSPACE ACTIVE</span>
@@ -76,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
         <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-sm z-50 flex items-start justify-center pt-[15vh]">
           <div className="fixed inset-0" onClick={() => setShowPalette(false)} />
           <div className="theme-panel w-full max-w-lg rounded-xl overflow-hidden relative z-10">
-            <div className="flex items-center gap-3 p-3 border-b border-border bg-[color:var(--surface-elevated)]">
+            <div className="flex items-center gap-3 p-3 border-b border-border bg-(--surface-elevated)">
               <Terminal size={16} className="text-indigo-400" />
               <input
                 autoFocus

@@ -62,7 +62,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRegener
                   <table className="w-full text-left text-[11px] text-gray-300 font-sans border-collapse">
                     <tbody>
                       {rows.map((row, rIdx) => (
-                        <tr key={rIdx} className="border-b border-white/5 hover:bg-white/[0.02] transition">
+                        <tr key={rIdx} className="border-b border-white/5 hover:bg-white/2 transition">
                           {row.split('|').filter((_, idx, arr) => idx > 0 && idx < arr.length - 1).map((cell, cIdx) => (
                             <td key={cIdx} className="px-3.5 py-2.5 font-medium">{cell.trim()}</td>
                           ))}
@@ -87,7 +87,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRegener
       <div className={`flex items-center gap-2 px-1 select-none ${isAi ? 'flex-row' : 'flex-row-reverse'}`}>
         <div className={`w-6 h-6 rounded-lg flex items-center justify-center border text-[10px] shrink-0 ${
           isAi 
-            ? 'bg-gradient-to-tr from-indigo-500 to-purple-500 border-indigo-500/20 text-white shadow-sm' 
+            ? 'bg-linear-to-tr from-indigo-500 to-purple-500 border-indigo-500/20 text-white shadow-sm' 
             : 'bg-white/5 border-white/10 text-white'
         }`}>
           {isAi ? <Sparkles size={11} /> : <User size={11} />}
@@ -104,7 +104,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRegener
       <div className={`p-4 rounded-2xl text-xs leading-relaxed border shadow-md flex flex-col gap-2 ${
         isAi 
           ? 'bg-[#161E2E] border-white/5 text-gray-300' 
-          : 'bg-gradient-to-tr from-[#6366F1] to-[#8B5CF6] border-indigo-500/30 text-white shadow-indigo-500/5'
+          : 'bg-linear-to-tr from-[#6366F1] to-[#8B5CF6] border-indigo-500/30 text-white shadow-indigo-500/5'
       }`}>
         {renderContent()}
         {message.isStreaming && (

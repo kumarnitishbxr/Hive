@@ -11,8 +11,11 @@ import { Skeleton, CardSkeleton } from '../../components/Skeleton';
 import ErrorState from '../../components/ErrorState';
 
 export const DashboardOverview: React.FC = () => {
+  const role = useSelector((state: RootState) => state.auth.role);
+  const startupId = useSelector((state: RootState) => state.auth.startupId);
   const activeWorkspaceId = useSelector((state: RootState) => state.workspace.activeWorkspaceId);
-  const { data: healthData, isLoading, isError, refetch } = useAiHealthReport();
+  const canLoadHealth = Boolean(startupId && (role === 'Founder' || role === 'Co-Founder'));
+  const { data: healthData, isLoading, isError, refetch } = useAiHealthReport(canLoadHealth);
   const { data: projects = [] } = useProjects(activeWorkspaceId);
   const primaryProjectId = projects[0]?._id || null;
   const { data: sprints = [] } = useSprints(primaryProjectId);

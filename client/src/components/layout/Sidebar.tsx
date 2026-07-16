@@ -51,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   ];
 
   return (
-    <aside className="w-64 border-r border-border bg-[color:var(--surface-elevated)] flex flex-col justify-between h-full backdrop-blur-xl transition-colors duration-150">
+    <aside className="w-64 border-r border-border bg-(--surface-elevated) flex flex-col justify-between h-full backdrop-blur-xl transition-colors duration-150">
       <div className="flex flex-col">
         {/* Brand header */}
         <div className="p-6 border-b border-border dark:border-[rgba(255,255,255,0.06)]">
@@ -78,7 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-150 cursor-pointer text-left relative border-l-2 ${
                   isActive 
                     ? 'bg-[#EFF6FF] dark:bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-500' 
-                    : 'border-transparent text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.02] dark:hover:text-gray-200'
+                    : 'border-transparent text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/2 dark:hover:text-gray-200'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -105,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
               {auth.user?.fullName.charAt(0) || 'U'}
             </div>
             <div>
-              <h4 className="text-[11px] font-bold text-gray-800 dark:text-white truncate max-w-[120px]">{auth.user?.fullName}</h4>
+              <h4 className="text-[11px] font-bold text-gray-800 dark:text-white truncate max-w-30">{auth.user?.fullName}</h4>
               <span className="text-[9px] text-blue-600 dark:text-blue-500 font-bold uppercase tracking-wider flex items-center gap-1">
                 <UserCheck size={8} /> {auth.role || 'MEMBER'}
               </span>

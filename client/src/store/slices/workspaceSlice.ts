@@ -22,7 +22,17 @@ const workspaceSlice = createSlice({
   reducers: {
     setWorkspaces: (state, action: PayloadAction<any[]>) => {
       state.workspaces = action.payload;
-      if (action.payload.length > 0 && !state.activeWorkspaceId) {
+      const activeStillExists = action.payload.some(workspace => workspace._id === state.activeWorkspaceId);
+
+      if (action.payload.length === 0) {
+        state.activeWorkspaceId = null;
+        state.activeWorkspaceName = null;
+        localStorage.removeItem('activeWorkspaceId');
+        localStorage.removeItem('activeWorkspaceName');
+        return;
+      }
+
+      if (!activeStillExists) {
         state.activeWorkspaceId = action.payload[0]._id;
         state.activeWorkspaceName = action.payload[0].name;
         localStorage.setItem('activeWorkspaceId', action.payload[0]._id);
@@ -40,9 +50,18 @@ const workspaceSlice = createSlice({
     },
     setActivePageId: (state, action: PayloadAction<string | null>) => {
       state.activePageId = action.payload;
+    },
+    resetWorkspaceState: (state) => {
+      state.workspaces = [];
+      state.activeWorkspaceId = null;
+      state.activeWorkspaceName = null;
+      state.pages = [];
+      state.activePageId = null;
+      localStorage.removeItem('activeWorkspaceId');
+      localStorage.removeItem('activeWorkspaceName');
     }
   }
 });
 
-export const { setWorkspaces, setActiveWorkspace, setPages, setActivePageId } = workspaceSlice.actions;
+export const { setWorkspaces, setActiveWorkspace, setPages, setActivePageId, resetWorkspaceState } = workspaceSlice.actions;
 export default workspaceSlice.reducer;

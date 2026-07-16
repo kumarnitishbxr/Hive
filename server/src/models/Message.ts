@@ -1,17 +1,15 @@
-import { Schema, Document, model } from 'mongoose';
+import { Schema, Document, model, Types } from 'mongoose';
 
 export interface IMessage extends Document {
-  conversationId: Schema.Types.ObjectId;
-  senderId: Schema.Types.ObjectId;
-  message: string;
-  attachments: {
-    name: string;
-    url: string;
-    fileType: string;
-  }[];
-  replyTo?: Schema.Types.ObjectId;
-  seenBy: Schema.Types.ObjectId[];
-  deliveredTo: Schema.Types.ObjectId[];
+  conversationId: Types.ObjectId;
+  senderId: Types.ObjectId;
+  content: string;
+  messageType: 'text' | 'image' | 'file' | 'voice';
+  text?: string;
+  image?: string;
+  file?: string;
+  voice?: string;
+  replyTo?: Types.ObjectId;
   edited: boolean;
   deleted: boolean;
   createdAt: Date;
@@ -21,21 +19,30 @@ export interface IMessage extends Document {
 const MessageSchema = new Schema<IMessage>({
   conversationId: { type: Schema.Types.ObjectId, ref: 'Conversation', required: true, index: true },
   senderId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  message: { type: String, required: true },
-  attachments: [{
-    name: { type: String, required: true },
-    url: { type: String, required: true },
-    fileType: { type: String, default: 'file' }
-  }],
+  content: { type: String, required: true },
+  messageType: { 
+    type: String, 
+    enum: ['text', 'image', 'file', 'voice'], 
+    required: true, 
+    default: 'text' 
+  },
+  text: { type: String },
+  image: { type: String },
+  file: { type: String },
+  voice: { type: String },
   replyTo: { type: Schema.Types.ObjectId, ref: 'Message' },
-  seenBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
-  deliveredTo: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   edited: { type: Boolean, default: false },
   deleted: { type: Boolean, default: false }
 }, { timestamps: true });
 
-// Index for getting message history for a conversation chronologically
 MessageSchema.index({ conversationId: 1, createdAt: 1 });
+
+MessageSchema.virtual('message').get(function(this: any) {
+  return this.content;
+});
+
+MessageSchema.set('toObject', { virtuals: true });
+MessageSchema.set('toJSON', { virtuals: true });
 
 export const Message = model<IMessage>('Message', MessageSchema);
 export default Message;
